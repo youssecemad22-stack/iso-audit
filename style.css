@@ -106,3 +106,5 @@ table.t tr.click{cursor:pointer}table.t tr.click:hover{background:#f7fafb}
   @page portrait{size:A4 portrait;margin:0}
   @page landscape{size:A4 landscape;margin:0}
 }
+
+.brand img.raya{height:30px;background:#fff;border-radius:6px;padding:3px 8px}
