@@ -358,17 +358,20 @@ function planPairs(){
   sites.forEach(s=>deps.forEach(d=>{ if(depAt(d,s.id)) out.push([s,d]); })); return out;
 }
 function planStats(y,q,pairs){ const r={total:0,done:0,overdue:0,planned:0}; pairs.forEach(([s,d])=>{const c=planCellState(s.id,d.id,y,q); if(c.st==='na')return; r.total++; r[c.st]++;}); return r; }
+function planLegend(){ return `<div class="plegend"><span><i class="pb-done"></i>Done</span><span><i class="pb-planned"></i>Planned</span><span><i class="pb-overdue"></i>Overdue</span><span><i class="pb-na"></i>Not tracked</span></div>`; }
+function pblock(c,inner){ // inner: extra html for planned/overdue
+  if(c.st==='na') return '<td class="pcell"><div class="pb pb-na"><b>Not tracked</b></div></td>';
+  if(c.st==='done') return `<td class="pcell"><a class="pb pb-done" href="#/audit/${c.au.id}"><b>✓ Done</b><small>${fmt(c.au.audit_date)}</small></a></td>`;
+  return `<td class="pcell"><div class="pb pb-${c.st}"><b>${c.st==='overdue'?'⚠ Overdue':'Planned'}</b>${inner||''}</div></td>`;
+}
 function planMatrix(){
   const f=S.filters, cq=qOf(today()), y=S.planYear||cq.y, q=S.planQ||cq.q;
   const sites=scopedSites().filter(x=>!f.site||x.id==f.site), deps=scopedDeps().filter(d=>!f.dep||d.id==f.dep);
   const st=planStats(y,q,planPairs()); const p=pct(st.done,st.total);
-  const cell=(s,d)=>{ if(!depAt(d,s.id)) return '<td style="color:var(--mut);text-align:center">·</td>'; const c=planCellState(s.id,d.id,y,q);
-    if(c.st==='na') return '<td style="color:var(--mut);text-align:center">—</td>';
-    if(c.st==='done') return `<td style="text-align:center"><a href="#/audit/${c.au.id}"><span class="badge b-ok">✓ Done</span></a><div class="s" style="color:var(--mut)">${fmt(c.au.audit_date)}</div></td>`;
-    const dv=c.rec&&c.rec.planned_date; return `<td style="text-align:center">${c.st==='overdue'?'<span class="badge b-over">Overdue</span>':'<span class="badge b-open">Planned</span>'}${dv?`<div class="s" style="color:var(--mut)">${fmt(dv)}</div>`:''}</td>`; };
+  const cell=(s,d)=>{ if(!depAt(d,s.id)) return '<td class="pcell"><div class="pb pb-x">n/a</div></td>'; const c=planCellState(s.id,d.id,y,q); const dv=c.rec&&c.rec.planned_date; return pblock(c,dv?`<small>${fmt(dv)}</small>`:'<small>no date</small>'); };
   return `<div class="card"><div class="spread"><h2 style="margin:0">Audit plan · Q${q} ${y}</h2><div class="row"><label class="f" style="min-width:90px">Quarter<select data-pq="1">${[1,2,3,4].map(v=>`<option value="${v}" ${v===q?'selected':''}>Q${v}</option>`).join('')}</select></label><a class="btn sm sec" href="#/plan">Open plan</a></div></div>
   <p class="s" style="color:var(--mut)">${st.total?`${st.done} of ${st.total} done (${p}%) · ${st.planned} planned · ${st.overdue} overdue`:'This quarter is not tracked.'}</p>
-  <div class="scroll"><table class="t"><thead><tr><th>${t('site')}</th>${deps.map(d=>`<th style="text-align:center">${esc(d.name)}</th>`).join('')}</tr></thead><tbody>${sites.map(s=>`<tr><td><b>${esc(s.name)}</b></td>${deps.map(d=>cell(s,d)).join('')}</tr>`).join('')}</tbody></table></div></div>`;
+  ${planLegend()}<div class="scroll"><table class="t pm"><thead><tr><th>${t('site')}</th>${deps.map(d=>`<th style="text-align:center">${esc(d.name)}</th>`).join('')}</tr></thead><tbody>${sites.map(s=>`<tr><td><b>${esc(s.name)}</b></td>${deps.map(d=>cell(s,d)).join('')}</tr>`).join('')}</tbody></table></div></div>`;
 }
 
 /* ---------------- dashboard visuals ---------------- */
@@ -418,16 +421,13 @@ function planView(){
   ${deps.length>1?`<label class="f">${t('dept')}<select data-f="dep"><option value="">${t('allDeps')}</option>${deps.map(d=>`<option value="${d.id}" ${f.dep==d.id?'selected':''}>${esc(d.name)}</option>`).join('')}</select></label>`:''}</div></div>`;
   const qc=[1,2,3,4].map(q=>{const st=planStats(y,q,pairs); const p=pct(st.done,st.total); return `<div class="kpi ${st.total?(st.overdue?'bad':p===100?'good':''):''}"><b>${st.total?st.done+'/'+st.total:'—'}</b><span>Q${q} ${y} ${st.total?'done ('+p+'%)':'not tracked'}${st.overdue?' · '+st.overdue+' overdue':''}</span></div>`;}).join('');
   const rows=pairs.map(([s,d])=>{ const cells=[1,2,3,4].map(q=>{ const c=planCellState(s.id,d.id,y,q);
-    if(c.st==='na') return '<td style="color:var(--mut);text-align:center">—</td>';
-    if(c.st==='done') return `<td><a href="#/audit/${c.au.id}"><span class="badge b-ok">✓ Done</span></a><div class="s" style="color:var(--mut)">${fmt(c.au.audit_date)}</div></td>`;
-    const bd=c.st==='overdue'?'<span class="badge b-over">Overdue</span>':'<span class="badge b-open">Planned</span>';
     const dv=c.rec&&c.rec.planned_date||'';
-    const inp=canPlan()?`<input type="date" data-plan="${s.id}|${d.id}|${y}|${q}" value="${dv}" min="${qStart(y,q)}" max="${qEnd(y,q)}" style="margin-top:4px;max-width:150px">`:`<div class="s" style="color:var(--mut)">${dv?fmt(dv):'No date set'}</div>`;
-    return `<td>${bd}${inp}</td>`; }).join('');
+    const inp=canPlan()?`<input type="date" data-plan="${s.id}|${d.id}|${y}|${q}" value="${dv}" min="${qStart(y,q)}" max="${qEnd(y,q)}">`:`<small>${dv?fmt(dv):'No date set'}</small>`;
+    return pblock(c,inp); }).join('');
     return `<tr><td><b>${esc(s.name)}</b></td><td>${esc(d.name)}</td>${cells}</tr>`; }).join('');
   return layout(`<h1>${t('plan')}</h1><p class="s" style="color:var(--mut);margin-top:0">Every department is audited once per quarter at each site it applies to. A cell turns Done when an audit for that site and department is entered with a date inside the quarter. It turns Overdue when the planned date passes, or the quarter ends, without an audit. ${canPlan()?'Pick a planned date in a cell to schedule it.':''} Each site has its own tracking start quarter (set in Admin); earlier quarters show a dash.</p>${bar}
   <div class="grid kpis" style="margin-bottom:14px">${qc}</div>
-  <div class="card"><div class="scroll"><table class="t"><thead><tr><th>${t('site')}</th><th>${t('dept')}</th><th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th></tr></thead><tbody>${rows||`<tr><td colspan="6" class="empty">${t('none')}</td></tr>`}</tbody></table></div></div><div class="err">${esc(S.err)}</div>`);
+  <div class="card">${planLegend()}<div class="scroll"><table class="t pm"><thead><tr><th>${t('site')}</th><th>${t('dept')}</th><th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th></tr></thead><tbody>${rows||`<tr><td colspan="6" class="empty">${t('none')}</td></tr>`}</tbody></table></div></div><div class="err">${esc(S.err)}</div>`);
 }
 function adminView(){
   const ps=D().profiles; 
