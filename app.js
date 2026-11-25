@@ -1,0 +1,470 @@
+(function(){
+'use strict';
+const CFG = window.AUDIT_CONFIG;
+const LOGO = 'data:image/png;base64,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';
+const $app = document.getElementById('app');
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const today = () => { const d=new Date(); return new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10); };
+const addDays = (iso,n) => { const d=new Date(iso+'T12:00:00'); d.setDate(d.getDate()+n); return d.toISOString().slice(0,10); };
+const fmt = iso => iso ? iso.slice(8,10)+'/'+iso.slice(5,7)+'/'+iso.slice(0,4) : '';
+const monthKey = iso => iso.slice(0,7);
+
+/* ---------------- translations ---------------- */
+const T = {
+ar:{app:'نظام الأوديت',dash:'لوحة المتابعة',audits:'الأوديتات',cars:'الـ CAR',nc:'قايمة الـ NC',admin:'الإدارة',logout:'خروج',login:'دخول',signup:'حساب جديد',email:'الايميل',password:'الباسورد',fullname:'الاسم',
+ loginSub:'سجل دخولك لمتابعة الأوديت',haveAcc:'عندي حساب',noAcc:'مفيش حساب؟ اعمل واحد',pendingT:'حسابك مستني الموافقة',pendingP:'مدير النظام لازم يحدد صلاحياتك (القسم والمكان). كلمه وهيفتحلك.',
+ site:'المكان',dept:'القسم',allSites:'كل الأماكن',allDeps:'كل الأقسام',from:'من شهر',to:'إلى شهر',
+ kAudits:'أوديتات',kPoints:'نقاط تم فحصها',kConf:'نسبة المطابقة',kNC:'عدم مطابقة',kOpen:'CAR مفتوحة',kOver:'CAR متأخرة',kMajor:'Major مفتوحة',
+ confByDep:'نسبة المطابقة لكل قسم',perMonth:'النتايج لكل شهر',sitesCmp:'مقارنة الأماكن',topIso:'أكتر بنود ISO تكرارا في عدم المطابقة',overdueList:'الـ CAR المتأخرة',
+ ncByDep:'عدم المطابقة لكل قسم (من إجمالي النقاط)',conforming:'مطابق',minor:'Minor',major:'Major',ofi:'ملاحظة / فرصة تحسين',nonconf:'عدم مطابقة',
+ none:'مفيش بيانات',newAudit:'أوديت جديد',date:'التاريخ',auditor:'الأوديتور',points:'النقاط',open:'مفتوح',closed:'مقفول',overdue:'متأخر',status:'الحالة',
+ auditPoint:'نقطة الأوديت',isoRefs:'بنود ISO',result:'النتيجة',corrAct:'الإجراء التصحيحي',resp:'القسم المسؤول',due:'تاريخ الاستحقاق',addPoint:'+ نقطة',remove:'حذف',save:'حفظ',cancel:'إلغاء',back:'رجوع',
+ saved:'اتحفظ',carNote:'لما تختار Minor أو Major بيتفتح CAR تلقائي برقم جديد.',deleteAudit:'حذف الأوديت',confirmDel:'متأكد؟ اضغط تاني للحذف',
+ carNo:'رقم الـ CAR',classification:'التصنيف',raised:'تاريخ الفتح',sec1:'القسم ١ – ملاحظات الأوديتور',sec2:'القسم ٢ – رد القسم والإجراءات',correction:'التصحيح (إيه اللي اتعمل فورا)',root:'تحليل السبب الجذري',actions:'الإجراءات التصحيحية',proposedBy:'مقدم من',actionDate:'تاريخ تنفيذ الإجراء',
+ sec3:'القسم ٣ – مراجعة الأوديتور',dec1:'مقبول والإغلاق في الأوديت الجاي، من غير دليل',dec2:'مقبول، والإغلاق بدليل التنفيذ',dec3:'مقبول ومتحقق منه، إغلاق أو تخفيض لـ Minor بدليل',dec4:'مقبول لكن لازم زيارة موقع للتحقق قبل الإغلاق',
+ reviewedBy:'راجعه',accepted:'تاريخ القبول',sec4:'القسم ٤ – إقفال الـ CAR',evidence:'الدليل على التنفيذ',verifier:'أوديتور التحقق',closeDate:'تاريخ الإقفال',closeCar:'قفل الـ CAR',reopen:'إعادة فتح',
+ printPdf:'طباعة / حفظ PDF',docAudit:'تقرير الأوديت',docCar:'فورم الـ CAR',docNc:'قايمة الـ NC',pickSite:'اختار المكان',
+ users:'المستخدمين',role:'الصلاحية',pending:'مستني',owner:'مدير النظام (يشوف كله)',site_manager:'مدير مكان',auditor:'أوديتور',dept_manager:'مدير قسم',
+ sites:'الأماكن',deps:'الأقسام',addSite:'إضافة مكان',addDep:'إضافة قسم',name:'الاسم',code:'الكود',fullName:'الاسم الكامل في الفورم',add:'إضافة',
+ ctx:'لكل مكان',all:'الكل',demo:'نسخة تجريبية: البيانات على المتصفح بس. بدّل الدور:',view:'فتح',actionsC:'إجراءات',
+ roleHelp:'مدير النظام يشوف كل الأماكن. مدير المكان يشوف مكانه بس. مدير القسم يشوف قسمه في مكانه بس.',
+ count:'العدد',carsOpenSite:'مفتوحة',lastAudit:'آخر أوديت',reqSite:'اختار المكان والقسم',dueSoon:'قريب'},
+en:{app:'Audit System',dash:'Dashboard',audits:'Audits',cars:'CARs',nc:'NC list',admin:'Admin',logout:'Sign out',login:'Sign in',signup:'Create account',email:'Email',password:'Password',fullname:'Full name',
+ loginSub:'Sign in to follow your audits',haveAcc:'I have an account',noAcc:'No account? Create one',pendingT:'Your account is waiting for approval',pendingP:'The system owner must assign your access (department and site). Ask them to open it.',
+ site:'Site',dept:'Department',allSites:'All sites',allDeps:'All departments',from:'From month',to:'To month',
+ kAudits:'Audits',kPoints:'Points checked',kConf:'Conformity',kNC:'Nonconformities',kOpen:'Open CARs',kOver:'Overdue CARs',kMajor:'Open Majors',
+ confByDep:'Conformity by department',perMonth:'Results per month',sitesCmp:'Site comparison',topIso:'Most repeated ISO points in nonconformities',overdueList:'Overdue CARs',
+ ncByDep:'Nonconformities by department (of points checked)',conforming:'Conforming',minor:'Minor',major:'Major',ofi:'Observation / OFI',nonconf:'Nonconformity',
+ none:'No data',newAudit:'New audit',date:'Date',auditor:'Auditor',points:'Points',open:'Open',closed:'Closed',overdue:'Overdue',status:'Status',
+ auditPoint:'Audit point',isoRefs:'ISO refs',result:'Result',corrAct:'Corrective action',resp:'Responsible department',due:'Due date',addPoint:'+ Point',remove:'Remove',save:'Save',cancel:'Cancel',back:'Back',
+ saved:'Saved',carNote:'Choosing Minor or Major opens a CAR automatically with the next number.',deleteAudit:'Delete audit',confirmDel:'Sure? Tap again to delete',
+ carNo:'CAR No',classification:'Classification',raised:'Date raised',sec1:'Section 1 – Auditor findings',sec2:'Section 2 – Response and planned actions',correction:'Correction (immediate action taken)',root:'Root cause analysis',actions:'Corrective actions',proposedBy:'Proposed by',actionDate:'Date actions will be taken',
+ sec3:'Section 3 – Review by auditor',dec1:'Accepted, close at next audit, no evidence needed now',dec2:'Accepted, closed with evidence of implementation',dec3:'Accepted and verified, closed or downgraded to minor, with evidence',dec4:'Accepted, effectiveness needs an on-site visit before closure',
+ reviewedBy:'Reviewed by',accepted:'Date of acceptance',sec4:'Section 4 – CAR closed',evidence:'Objective evidence',verifier:'Verifying auditor',closeDate:'Close-out date',closeCar:'Close CAR',reopen:'Reopen',
+ printPdf:'Print / Save PDF',docAudit:'Audit report',docCar:'CAR form',docNc:'NC list',pickSite:'Pick a site',
+ users:'Users',role:'Role',pending:'Pending',owner:'Owner (sees all)',site_manager:'Site manager',auditor:'Auditor',dept_manager:'Department manager',
+ sites:'Sites',deps:'Departments',addSite:'Add site',addDep:'Add department',name:'Name',code:'Code',fullName:'Full name on forms',add:'Add',
+ ctx:'Per site',all:'All',demo:'Demo version: data lives in this browser only. Switch role:',view:'Open',actionsC:'Actions',
+ roleHelp:'Owner sees every site. Site manager sees their site only. Department manager sees their department at their site only.',
+ count:'Count',carsOpenSite:'Open',lastAudit:'Last audit',reqSite:'Pick site and department',dueSoon:'soon'}
+};
+
+/* ---------------- state ---------------- */
+const S = { lang: localStorage.getItem('audit_lang')||'ar', user:null, profile:null, data:null, route:'', err:'', busy:false, filters:{site:'',dep:'',from:'',to:''}, draft:null, confirmDel:false, authMode:'in' };
+const t = k => (T[S.lang]&&T[S.lang][k]) || T.en[k] || k;
+const TABLES = ['sites','departments','audits','findings','cars'];
+
+/* ---------------- data layer ---------------- */
+const DB = {};
+if (CFG.mode === 'demo') {
+  const KEY='audit_demo_v3';
+  let store=null;
+  DB.init = async()=>{
+    store = JSON.parse(localStorage.getItem(KEY)||'null');
+    if(!store){
+      const seed = await (await fetch('demo-seed.json')).json();
+      store={seq:1000,sites:[],departments:[],audits:[],findings:[],cars:[],profiles:[],me:'owner'};
+      seed.sites.forEach((n,i)=>store.sites.push({id:i+1,name:n,full_name:n==='Edge KOV'?'Edge Innovation Center - LARZ Branch':null}));
+      seed.deps.forEach((d,i)=>store.departments.push({id:i+1,name:d[0],code:d[1]}));
+      const kov=store.sites.find(s=>s.name==='Edge KOV').id;
+      store.departments.forEach(d=>{
+        const a={id:++store.seq,site_id:kov,department_id:d.id,audit_date:'2026-11-12',auditor_name:'Youssef Emad'}; store.audits.push(a);
+        Object.entries(seed.pts).filter(([cn])=>cn.split('-')[1]===d.code).forEach(([cn,[pt,iso]])=>{
+          const c=seed.cars.find(x=>x.car_no===cn);
+          const f={id:++store.seq,audit_id:a.id,sn:+cn.slice(-2),audit_point:pt,iso_refs:iso,result:c.classification,car_no:cn,corrective_action:c.corrective_action,responsible:d.name,due_date:c.action_date}; store.findings.push(f);
+          store.cars.push(Object.assign({id:++store.seq,site_id:kov,department_id:d.id,finding_id:f.id,status:c.close_date?'closed':'open'},c));
+        });
+      });
+      store.profiles=[
+        {id:'owner',email:'youssef@example.com',full_name:'Youssef Emad',role:'owner'},
+        {id:'sm',email:'kov.manager@example.com',full_name:'KOV Manager',role:'site_manager',site_id:kov},
+        {id:'dm',email:'it.manager@example.com',full_name:'IT Manager',role:'dept_manager',site_id:kov,department_id:store.departments.find(d=>d.code==='IT').id},
+        {id:'new',email:'new.user@example.com',full_name:'New User',role:'pending'}];
+      save();
+    }
+    const p=store.profiles.find(x=>x.id===store.me);
+    return {user:{id:p.id,email:p.email},profile:p};
+  };
+  const save=()=>localStorage.setItem(KEY,JSON.stringify(store));
+  const canSee=(p,s,d)=>p.role==='owner'||(p.role==='auditor'&&(!p.site_id||p.site_id===s))||(p.role==='site_manager'&&p.site_id===s)||(p.role==='dept_manager'&&p.site_id===s&&(!p.department_id||p.department_id===d));
+  DB.signIn=async()=>{}; DB.signUp=async()=>{}; DB.signOut=async()=>{};
+  DB.switchRole=id=>{store.me=id;save();location.reload();};
+  DB.loadAll=async()=>{
+    const p=store.profiles.find(x=>x.id===store.me); const out={};
+    out.sites=store.sites.slice(); out.departments=store.departments.slice();
+    out.audits=store.audits.filter(a=>canSee(p,a.site_id,a.department_id));
+    const ids=new Set(out.audits.map(a=>a.id)); out.findings=store.findings.filter(f=>ids.has(f.audit_id));
+    out.cars=store.cars.filter(c=>canSee(p,c.site_id,c.department_id));
+    out.profiles=p.role==='owner'?store.profiles.slice():[p];
+    return out;
+  };
+  DB.insert=async(tb,row)=>{const r=Object.assign({id:++store.seq},row);store[tb].push(r);save();return r;};
+  DB.update=async(tb,id,patch)=>{const r=store[tb].find(x=>x.id===id);Object.assign(r,patch);save();return r;};
+  DB.remove=async(tb,id)=>{store[tb]=store[tb].filter(x=>x.id!==id);if(tb==='audits')store.findings=store.findings.filter(f=>f.audit_id!==id);save();};
+  DB.demoProfiles=()=>store.profiles;
+} else {
+  const URL_=CFG.supabaseUrl, KEY_=CFG.supabaseAnonKey;
+  const getSes=()=>{try{return JSON.parse(localStorage.getItem('audit_session')||'null');}catch(e){return null;}};
+  const setSes=s=>s?localStorage.setItem('audit_session',JSON.stringify(s)):localStorage.removeItem('audit_session');
+  const fail=async r=>{let j={};try{j=await r.json();}catch(e){} throw new Error(j.msg||j.error_description||j.message||j.error||r.statusText);};
+  async function refresh(){
+    const s=getSes(); if(!s||!s.refresh_token) throw new Error('expired');
+    const r=await fetch(URL_+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{apikey:KEY_,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:s.refresh_token})});
+    if(!r.ok){setSes(null);throw new Error('expired');} setSes(await r.json());
+  }
+  async function api(path,opt={}){
+    const s=getSes();
+    const r=await fetch(URL_+path,Object.assign({},opt,{headers:Object.assign({apikey:KEY_,Authorization:'Bearer '+(s?s.access_token:KEY_),'Content-Type':'application/json'},opt.headers||{})}));
+    if(r.status===401&&!opt._r){await refresh();return api(path,Object.assign({},opt,{_r:1}));}
+    if(!r.ok) await fail(r);
+    return r.status===204?null:r.json();
+  }
+  DB.init=async()=>{
+    const s=getSes(); if(!s) return null;
+    try{
+      let u; try{u=await api('/auth/v1/user');}catch(e){u=null;}
+      if(!u) return null;
+      const rows=await api('/rest/v1/profiles?id=eq.'+u.id+'&select=*');
+      return {user:{id:u.id,email:u.email},profile:rows[0]||{id:u.id,email:u.email,role:'pending'}};
+    }catch(e){return null;}
+  };
+  DB.signIn=async(email,pw)=>{
+    const r=await fetch(URL_+'/auth/v1/token?grant_type=password',{method:'POST',headers:{apikey:KEY_,'Content-Type':'application/json'},body:JSON.stringify({email,password:pw})});
+    if(!r.ok) await fail(r); setSes(await r.json());
+  };
+  DB.signUp=async(email,pw,name)=>{
+    const r=await fetch(URL_+'/auth/v1/signup',{method:'POST',headers:{apikey:KEY_,'Content-Type':'application/json'},body:JSON.stringify({email,password:pw,data:{full_name:name}})});
+    if(!r.ok) await fail(r); const j=await r.json(); if(j.access_token) setSes(j); else await DB.signIn(email,pw);
+  };
+  DB.signOut=async()=>{setSes(null);};
+  DB.loadAll=async()=>{
+    const out={};
+    await Promise.all(TABLES.concat(['profiles']).map(async tb=>{out[tb]=await api('/rest/v1/'+tb+'?select=*&order=id.asc&limit=5000');}));
+    return out;
+  };
+  DB.insert=async(tb,row)=>(await api('/rest/v1/'+tb,{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify(row)}))[0];
+  DB.update=async(tb,id,patch)=>(await api('/rest/v1/'+tb+'?id=eq.'+id,{method:'PATCH',headers:{Prefer:'return=representation'},body:JSON.stringify(patch)}))[0];
+  DB.remove=async(tb,id)=>{await api('/rest/v1/'+tb+'?id=eq.'+id,{method:'DELETE'});};
+}
+
+/* ---------------- helpers ---------------- */
+const D = () => S.data;
+const byId = (tb,id) => (D()[tb]||[]).find(x=>x.id===id);
+const role = () => S.profile && S.profile.role;
+const canAudit = () => role()==='owner'||role()==='auditor';
+const canRespond = () => canAudit()||role()==='site_manager'||role()==='dept_manager';
+const isOverdue = c => c.status==='open' && c.action_date && c.action_date < today();
+const siteLabel = s => s ? s.name : '';
+const depName = id => (byId('departments',id)||{}).name||'';
+const resLabel = r => t(r==='conforming'?'conforming':r);
+const resBadge = r => `<span class="badge b-${r==='conforming'?'ok':r}">${esc(resLabel(r))}</span>`;
+const stBadge = c => c.status==='closed'?`<span class="badge b-closed">${t('closed')}</span>`:(isOverdue(c)?`<span class="badge b-over">${t('overdue')}</span>`:`<span class="badge b-open">${t('open')}</span>`);
+const toast = m => { const el=document.getElementById('toast'); el.innerHTML='<div>'+esc(m)+'</div>'; setTimeout(()=>{el.innerHTML='';},2200); };
+function expandRefs(s){ const out=[]; String(s||'').split(',').forEach(p=>{p=p.trim(); const m=p.match(/^(\d+)\s*-\s*(\d+)$/); if(m){for(let i=+m[1];i<=+m[2];i++)out.push(String(i));} else if(/^\d+$/.test(p)) out.push(p);}); return out; }
+function nextCarNo(siteId,depId){
+  const dep=byId('departments',depId); const pre='CAR-'+dep.code+'-'; let mx=0;
+  D().cars.filter(c=>c.site_id===siteId&&c.car_no.startsWith(pre)).forEach(c=>{mx=Math.max(mx,parseInt(c.car_no.slice(pre.length),10)||0);});
+  return pre+String(mx+1).padStart(2,'0');
+}
+function scopedSites(){ const p=S.profile; return D().sites.filter(s=>role()==='owner'||!p.site_id||s.id===p.site_id); }
+function scopedDeps(){ const p=S.profile; return D().departments.filter(d=>!(role()==='dept_manager'&&p.department_id)||d.id===p.department_id); }
+function filtered(){
+  const f=S.filters; const inM=iso=>(!f.from||monthKey(iso)>=f.from)&&(!f.to||monthKey(iso)<=f.to);
+  const audits=D().audits.filter(a=>(!f.site||a.site_id==f.site)&&(!f.dep||a.department_id==f.dep)&&inM(a.audit_date));
+  const ids=new Set(audits.map(a=>a.id));
+  const findings=D().findings.filter(x=>ids.has(x.audit_id));
+  const cars=D().cars.filter(c=>(!f.site||c.site_id==f.site)&&(!f.dep||c.department_id==f.dep)&&inM(c.date_raised));
+  return {audits,findings,cars};
+}
+const pct=(a,b)=>b?Math.round(a*100/b):null;
+
+/* ---------------- views ---------------- */
+function layout(inner){
+  const links=[['#/dash','dash'],['#/audits','audits'],['#/cars','cars'],['#/nc','nc']]; if(role()==='owner') links.push(['#/admin','admin']);
+  const cur=S.route.split('/')[1]||'dash';
+  const demo = CFG.mode==='demo' ? `<div class="demo-bar">${t('demo')} <select id="demoRole">${DB.demoProfiles().map(p=>`<option value="${p.id}" ${p.id===S.user.id?'selected':''}>${esc(p.full_name)} (${esc(p.role)})</option>`).join('')}</select></div>`:'';
+  return demo+`<div class="top"><div class="top-in"><div class="brand"><i>✓</i>${t('app')}</div>
+  <nav class="nav">${links.map(([h,k])=>`<a href="${h}" class="${cur===h.slice(2)||(cur==='audit'&&k==='audits')||(cur==='car'&&k==='cars')||(cur==='doc'&&k==='nc'&&false)?'on':''}">${t(k)}</a>`).join('')}</nav>
+  <div class="who"><span>${esc(S.profile.full_name||S.user.email)}</span><span class="role">${t(role())}</span><button class="lang" data-a="lang">${S.lang==='ar'?'EN':'عربي'}</button><button class="lang" data-a="logout">${t('logout')}</button></div></div></div><main>${inner}</main>`;
+}
+function loginView(){
+  const up=S.authMode==='up';
+  return `<div class="login"><div class="card"><h1>✓ ${t('app')}</h1><p class="s">${t('loginSub')}</p><form id="authForm" class="stack-f">
+  ${up?`<label class="f">${t('fullname')}<input name="name" required></label>`:''}
+  <label class="f">${t('email')}<input name="email" type="email" required autocomplete="username" dir="ltr"></label>
+  <label class="f">${t('password')}<input name="pw" type="password" required minlength="6" autocomplete="${up?'new-password':'current-password'}" dir="ltr"></label>
+  <div class="err">${esc(S.err)}</div>
+  <button class="btn" ${S.busy?'disabled':''}>${up?t('signup'):t('login')}</button>
+  <button type="button" class="btn sec" data-a="authmode">${up?t('haveAcc'):t('noAcc')}</button></form>
+  <p style="text-align:center"><button class="lang" style="color:var(--pri);border-color:var(--line)" data-a="lang">${S.lang==='ar'?'EN':'عربي'}</button></p></div></div>`;
+}
+function pendingView(){
+  return layout(`<div class="card"><h2>${t('pendingT')}</h2><p>${t('pendingP')}</p><p class="s" dir="ltr">${esc(S.user.email)}</p></div>`);
+}
+function filterBar(){
+  const f=S.filters; const months=[...new Set(D().audits.map(a=>monthKey(a.audit_date)))].sort();
+  const sites=scopedSites(), deps=scopedDeps();
+  return `<div class="card"><div class="row">
+  ${sites.length>1?`<label class="f">${t('site')}<select data-f="site"><option value="">${t('allSites')}</option>${sites.map(s=>`<option value="${s.id}" ${f.site==s.id?'selected':''}>${esc(s.name)}</option>`).join('')}</select></label>`:''}
+  ${deps.length>1?`<label class="f">${t('dept')}<select data-f="dep"><option value="">${t('allDeps')}</option>${deps.map(d=>`<option value="${d.id}" ${f.dep==d.id?'selected':''}>${esc(d.name)}</option>`).join('')}</select></label>`:''}
+  <label class="f">${t('from')}<select data-f="from"><option value="">—</option>${months.map(m=>`<option ${f.from===m?'selected':''}>${m}</option>`).join('')}</select></label>
+  <label class="f">${t('to')}<select data-f="to"><option value="">—</option>${months.map(m=>`<option ${f.to===m?'selected':''}>${m}</option>`).join('')}</select></label>
+  </div></div>`;
+}
+function dashView(){
+  const {audits,findings,cars}=filtered();
+  const nc=findings.filter(x=>x.result==='minor'||x.result==='major');
+  const hasConf=findings.some(x=>x.result==='conforming'||x.result==='ofi'); const conf=hasConf?pct(findings.length-nc.length,findings.length):null;
+  const open=cars.filter(c=>c.status==='open'), over=cars.filter(isOverdue), majO=open.filter(c=>c.classification==='major');
+  const kpi=(n,l,cls='')=>`<div class="kpi ${cls}"><b>${n}</b><span>${l}</span></div>`;
+  // by department
+  const depRows=D().departments.map(d=>{const fs=findings.filter(x=>{const a=byId('audits',x.audit_id);return a&&a.department_id===d.id;}); const n=fs.filter(x=>x.result==='minor'||x.result==='major').length; return {d,total:fs.length,n};}).filter(r=>r.total);
+  const depHtml=depRows.length?depRows.map(r=>{const p=pct(r.total-r.n,r.total); if(!hasConf) return `<div class="br"><span>${esc(r.d.name)}</span><div class="bar"><i style="width:${pct(r.n,r.total)}%;background:var(--amb)"></i></div><b>${r.n}/${r.total}</b></div>`; return `<div class="br"><span>${esc(r.d.name)}</span><div class="bar"><i style="width:${p}%;background:${p>=80?'var(--grn)':p>=50?'var(--amb)':'var(--red)'}"></i></div><b>${p}%</b></div>`;}).join(''):`<div class="empty">${t('none')}</div>`;
+  // per month
+  const mm={}; findings.forEach(x=>{const a=byId('audits',x.audit_id); if(!a)return; const k=monthKey(a.audit_date); (mm[k]=mm[k]||{conforming:0,minor:0,major:0,ofi:0})[x.result]++;});
+  const keys=Object.keys(mm).sort(); const mx=Math.max(1,...keys.map(k=>Object.values(mm[k]).reduce((a,b)=>a+b,0)));
+  const col={conforming:'var(--grn)',ofi:'var(--blu)',minor:'var(--amb)',major:'var(--red)'};
+  const monHtml=keys.length?`<div class="months">${keys.map(k=>`<div class="mcol"><div class="stack" style="height:${Math.round(Object.values(mm[k]).reduce((a,b)=>a+b,0)*130/mx)}px">${['conforming','ofi','minor','major'].filter(r=>mm[k][r]).map(r=>`<div style="flex:${mm[k][r]};background:${col[r]}" title="${resLabel(r)}: ${mm[k][r]}"></div>`).join('')}</div><small>${k.slice(5)}/${k.slice(2,4)}</small></div>`).join('')}</div><div class="legend">${['conforming','ofi','minor','major'].map(r=>`<span><i style="background:${col[r]}"></i>${resLabel(r)}</span>`).join('')}</div>`:`<div class="empty">${t('none')}</div>`;
+  // top ISO
+  const cnt={}; nc.forEach(x=>{const a=byId('audits',x.audit_id); if(!a)return; expandRefs(x.iso_refs).forEach(r=>{const k=a.department_id+'|'+r; cnt[k]=(cnt[k]||0)+1;});});
+  const top=Object.entries(cnt).sort((a,b)=>b[1]-a[1]||a[0].localeCompare(b[0])).slice(0,8);
+  const topHtml=top.length?`<table class="t"><tbody>${top.map(([k,n])=>{const [d,r]=k.split('|');return `<tr><td>${esc(depName(+d))}</td><td dir="ltr">ISO ${r}</td><td><b>${n}</b></td></tr>`;}).join('')}</tbody></table>`:`<div class="empty">${t('none')}</div>`;
+  // sites comparison (visible sites)
+  const sRows=D().sites.map(s=>{const as=audits.filter(a=>a.site_id===s.id); if(!as.length&&!cars.some(c=>c.site_id===s.id))return null; const ids=new Set(as.map(a=>a.id)); const fs=findings.filter(x=>ids.has(x.audit_id)); const n=fs.filter(x=>x.result==='minor'||x.result==='major').length; const cs=cars.filter(c=>c.site_id===s.id); return {s,a:as.length,f:fs.length,p:hasConf?pct(fs.length-n,fs.length):null,o:cs.filter(c=>c.status==='open').length,ov:cs.filter(isOverdue).length};}).filter(Boolean);
+  const siteHtml=sRows.length>0&&(role()==='owner'||sRows.length>1)?`<div class="card"><h2>${t('sitesCmp')}</h2><div class="scroll"><table class="t"><thead><tr><th>${t('site')}</th><th>${t('kAudits')}</th><th>${t('kPoints')}</th><th>${t('kConf')}</th><th>${t('kOpen')}</th><th>${t('kOver')}</th></tr></thead><tbody>${sRows.map(r=>`<tr><td><b>${esc(r.s.name)}</b></td><td>${r.a}</td><td>${r.f}</td><td>${r.p==null?'—':r.p+'%'}</td><td>${r.o}</td><td>${r.ov?`<span class="badge b-over">${r.ov}</span>`:0}</td></tr>`).join('')}</tbody></table></div></div>`:'';
+  const overHtml=over.length?`<div class="card"><h2>⚠ ${t('overdueList')}</h2>${carTable(over)}</div>`:'';
+  return layout(`<h1>${t('dash')}</h1>${filterBar()}
+  <div class="grid kpis" style="margin-bottom:14px">${kpi(audits.length,t('kAudits'))}${kpi(findings.length,t('kPoints'))}${kpi(conf==null?'—':conf+'%',t('kConf'),conf==null?'':conf>=80?'good':conf>=50?'warn':'bad')}${kpi(nc.length,t('kNC'),nc.length?'warn':'')}${kpi(open.length,t('kOpen'),open.length?'warn':'good')}${kpi(over.length,t('kOver'),over.length?'bad':'good')}${kpi(majO.length,t('kMajor'),majO.length?'bad':'good')}</div>
+  ${overHtml}${siteHtml}
+  <div class="grid two"><div class="card bars"><h2>${hasConf?t('confByDep'):t('ncByDep')}</h2>${depHtml}</div><div class="card"><h2>${t('perMonth')}</h2>${monHtml}</div></div>
+  <div class="card"><h2>${t('topIso')}</h2>${topHtml}</div>`);
+}
+function carTable(cars){
+  return `<div class="scroll"><table class="t"><thead><tr><th>${t('carNo')}</th><th>${t('site')}</th><th>${t('dept')}</th><th>${t('classification')}</th><th>${t('raised')}</th><th>${t('due')}</th><th>${t('status')}</th></tr></thead><tbody>${cars.map(c=>`<tr class="click" data-go="#/car/${c.id}"><td dir="ltr"><b>${esc(c.car_no)}</b></td><td>${esc(siteLabel(byId('sites',c.site_id)))}</td><td>${esc(depName(c.department_id))}</td><td><span class="badge b-${c.classification}">${t(c.classification)}</span></td><td>${fmt(c.date_raised)}</td><td>${fmt(c.action_date)}</td><td>${stBadge(c)}</td></tr>`).join('')}</tbody></table></div>`;
+}
+function auditsView(){
+  const {audits}=filtered(); audits.sort((a,b)=>b.audit_date.localeCompare(a.audit_date)||b.id-a.id);
+  return layout(`<div class="spread"><h1>${t('audits')}</h1>${canAudit()?`<a class="btn acc" href="#/audit/new">+ ${t('newAudit')}</a>`:''}</div>${filterBar()}
+  <div class="card scroll">${audits.length?`<table class="t"><thead><tr><th>${t('date')}</th><th>${t('site')}</th><th>${t('dept')}</th><th>${t('auditor')}</th><th>${t('points')}</th><th>${t('kNC')}</th><th></th></tr></thead><tbody>${audits.map(a=>{const fs=D().findings.filter(x=>x.audit_id===a.id);const n=fs.filter(x=>x.result==='minor'||x.result==='major').length;return `<tr class="click" data-go="#/audit/${a.id}"><td>${fmt(a.audit_date)}</td><td>${esc(siteLabel(byId('sites',a.site_id)))}</td><td>${esc(depName(a.department_id))}</td><td>${esc(a.auditor_name)}</td><td>${fs.length}</td><td>${n}</td><td><a href="#/doc/audit/${a.id}" data-stop>PDF</a></td></tr>`;}).join('')}</tbody></table>`:`<div class="empty">${t('none')}</div>`}</div>`);
+}
+function newRow(dep,auditDate){ return {_k:Math.random(),audit_point:'',iso_refs:'',result:'conforming',corrective_action:'',responsible:dep?dep.name:'',due_date:addDays(auditDate||today(),30)}; }
+function auditFormView(id){
+  if(!S.draft||S.draft.key!==id){
+    if(id==='new'){ const sites=scopedSites(),deps=scopedDeps(); S.draft={key:id,site_id:(sites.length===1?sites[0].id:(S.filters.site?+S.filters.site:'')),department_id:(deps.length===1?deps[0].id:(S.filters.dep?+S.filters.dep:'')),audit_date:today(),auditor_name:S.profile.full_name||'',rows:[]}; S.draft.rows.push(newRow(byId('departments',S.draft.department_id),S.draft.audit_date)); }
+    else { const a=byId('audits',+id); if(!a) return layout(`<div class="empty">${t('none')}</div>`); S.draft={key:id,id:a.id,site_id:a.site_id,department_id:a.department_id,audit_date:a.audit_date,auditor_name:a.auditor_name||'',rows:D().findings.filter(f=>f.audit_id===a.id).sort((x,y)=>(x.sn||0)-(y.sn||0)).map(f=>Object.assign({_k:Math.random()},f))}; }
+  }
+  const d=S.draft, ro=!canAudit();
+  const hdr=`<div class="card"><div class="row"><label class="f">${t('site')}<select data-d="site_id" ${ro||d.id?'disabled':''}><option value="">—</option>${scopedSites().map(s=>`<option value="${s.id}" ${d.site_id===s.id?'selected':''}>${esc(s.name)}</option>`).join('')}</select></label>
+  <label class="f">${t('dept')}<select data-d="department_id" ${ro||d.id?'disabled':''}><option value="">—</option>${scopedDeps().map(x=>`<option value="${x.id}" ${d.department_id===x.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select></label>
+  <label class="f">${t('date')}<input type="date" data-d="audit_date" value="${d.audit_date}" ${ro?'disabled':''}></label>
+  <label class="f">${t('auditor')}<input data-d="auditor_name" value="${esc(d.auditor_name)}" ${ro?'disabled':''}></label></div></div>`;
+  const rows=d.rows.map((r,i)=>`<div class="fr"><div class="head"><span>#${i+1} ${r.car_no?`<span class="badge b-open" dir="ltr">${esc(r.car_no)}</span>`:''}</span>${ro?'':`<button class="btn sm sec" data-a="rmrow" data-i="${i}">${t('remove')}</button>`}</div>
+  <div class="g"><label class="f w2">${t('auditPoint')}<textarea data-r="${i}" data-k="audit_point" ${ro?'disabled':''}>${esc(r.audit_point)}</textarea></label>
+  <label class="f">${t('isoRefs')}<input data-r="${i}" data-k="iso_refs" value="${esc(r.iso_refs)}" placeholder="1-4, 7" ${ro?'disabled':''} dir="ltr"></label>
+  <label class="f">${t('result')}<select data-r="${i}" data-k="result" ${ro?'disabled':''}>${['conforming','minor','major','ofi'].map(x=>`<option value="${x}" ${r.result===x?'selected':''}>${resLabel(x)}</option>`).join('')}</select></label>
+  <label class="f w2">${t('corrAct')}<textarea data-r="${i}" data-k="corrective_action" ${ro?'disabled':''}>${esc(r.corrective_action)}</textarea></label>
+  <label class="f">${t('resp')}<input data-r="${i}" data-k="responsible" value="${esc(r.responsible)}" ${ro?'disabled':''}></label>
+  <label class="f">${t('due')}<input type="date" data-r="${i}" data-k="due_date" value="${r.due_date||''}" ${ro?'disabled':''}></label></div></div>`).join('');
+  return layout(`<div class="spread"><h1>${d.id?t('audits')+' · '+fmt(d.audit_date):t('newAudit')}</h1><div class="row">${d.id?`<a class="btn sec" href="#/doc/audit/${d.id}">${t('docAudit')} PDF</a>`:''}<a class="btn sec" href="#/audits">${t('back')}</a></div></div>${hdr}
+  <div class="note" style="margin-bottom:12px">${t('carNote')}</div><div class="fr-rows">${rows}</div>
+  ${ro?'':`<div class="row"><button class="btn sec" data-a="addrow">${t('addPoint')}</button><button class="btn acc" data-a="saveaudit" ${S.busy?'disabled':''}>${t('save')}</button>${d.id?`<button class="btn red" data-a="delaudit">${S.confirmDel?t('confirmDel'):t('deleteAudit')}</button>`:''}</div><div class="err">${esc(S.err)}</div>`}`);
+}
+async function saveAudit(){
+  const d=S.draft; S.err='';
+  if(!d.site_id||!d.department_id){S.err=t('reqSite');return render();}
+  S.busy=true; render();
+  try{
+    let aid=d.id; const body={site_id:+d.site_id,department_id:+d.department_id,audit_date:d.audit_date,auditor_name:d.auditor_name};
+    if(aid) await DB.update('audits',aid,body); else aid=(await DB.insert('audits',body)).id;
+    const existing=D().findings.filter(f=>f.audit_id===aid); const keep=new Set(d.rows.filter(r=>r.id).map(r=>r.id));
+    for(const f of existing) if(!keep.has(f.id)) await DB.remove('findings',f.id);
+    let sn=0; const dep=byId('departments',+d.department_id);
+    // CAR numbers must be unique, so compute against a running list
+    const used=D().cars.filter(c=>c.site_id===+d.site_id).map(c=>c.car_no);
+    const nextNo=()=>{const pre='CAR-'+dep.code+'-';let mx=0;used.forEach(n=>{if(n.startsWith(pre))mx=Math.max(mx,parseInt(n.slice(pre.length),10)||0);});const n=pre+String(mx+1).padStart(2,'0');used.push(n);return n;};
+    for(const r of d.rows){
+      sn++; if(!r.audit_point.trim()&&!r.id) continue;
+      const nonc=r.result==='minor'||r.result==='major';
+      const row={audit_id:aid,sn,audit_point:r.audit_point,iso_refs:r.iso_refs,result:r.result,corrective_action:r.corrective_action,responsible:r.responsible,due_date:r.due_date||null,car_no:r.car_no||null};
+      if(nonc&&!row.car_no){ row.car_no=nextNo(); }
+      let fid=r.id; if(fid) await DB.update('findings',fid,row); else fid=(await DB.insert('findings',row)).id;
+      if(nonc){
+        const car=D().cars.find(c=>c.site_id===+d.site_id&&c.car_no===row.car_no);
+        if(!car) await DB.insert('cars',{site_id:+d.site_id,department_id:+d.department_id,finding_id:fid,car_no:row.car_no,date_raised:d.audit_date,classification:r.result,auditor_findings:r.audit_point+(r.iso_refs?' (ref. '+r.iso_refs+')':''),corrective_action:r.corrective_action,action_date:r.due_date||null,status:'open'});
+        else if(car.classification!==r.result) await DB.update('cars',car.id,{classification:r.result});
+      }
+    }
+    D()&&(S.data=await DB.loadAll()); S.draft=null; S.busy=false; toast(t('saved')); location.hash='#/audits';
+  }catch(e){S.busy=false;S.err=e.message;render();}
+}
+function carsView(){
+  const {cars}=filtered(); cars.sort((a,b)=>(isOverdue(b)-isOverdue(a))||a.status.localeCompare(b.status)||b.id-a.id);
+  return layout(`<h1>${t('cars')}</h1>${filterBar()}<div class="card">${cars.length?carTable(cars):`<div class="empty">${t('none')}</div>`}</div>`);
+}
+function carView(id){
+  const c=byId('cars',+id); if(!c) return layout(`<div class="empty">${t('none')}</div>`);
+  const ra=canAudit(), rr=canRespond(); const dis=(f)=>f?'':'disabled';
+  const inp=(k,ok,type='text')=>`<input type="${type}" data-c="${k}" value="${esc(c[k]||'')}" ${dis(ok)}>`;
+  const ta=(k,ok)=>`<textarea data-c="${k}" ${dis(ok)}>${esc(c[k]||'')}</textarea>`;
+  const decs=[1,2,3,4].map(n=>`<label class="dec"><input type="radio" name="dec" data-c="review_decision" value="${n}" ${c.review_decision===n?'checked':''} ${dis(ra)}><span>${t('dec'+n)}</span></label>`).join('');
+  return layout(`<div class="spread"><h1 dir="ltr">${esc(c.car_no)} ${stBadge(c)}</h1><div class="row"><a class="btn sec" href="#/doc/car/${c.id}">${t('docCar')} PDF</a><a class="btn sec" href="#/cars">${t('back')}</a></div></div>
+  <div class="card"><div class="row"><label class="f">${t('site')}<input value="${esc(siteLabel(byId('sites',c.site_id)))}" disabled></label><label class="f">${t('dept')}<input value="${esc(depName(c.department_id))}" disabled></label>
+  <label class="f">${t('classification')}<select data-c="classification" ${dis(ra)}><option value="minor" ${c.classification==='minor'?'selected':''}>Minor</option><option value="major" ${c.classification==='major'?'selected':''}>Major</option></select></label>
+  <label class="f">${t('raised')}${inp('date_raised',ra,'date')}</label></div></div>
+  <div class="card"><h2>${t('sec1')}</h2>${ta('auditor_findings',ra)}</div>
+  <div class="card"><h2>${t('sec2')}</h2><div class="stack-f">
+  <label class="f">${t('correction')}${ta('correction',rr)}</label><label class="f">${t('root')}${ta('root_cause',rr)}</label><label class="f">${t('actions')}${ta('corrective_action',rr)}</label>
+  <div class="row"><label class="f">${t('proposedBy')}${inp('proposed_by',rr)}</label><label class="f">${t('actionDate')}${inp('action_date',rr,'date')}</label></div></div></div>
+  <div class="card"><h2>${t('sec3')}</h2>${decs}<div class="row"><label class="f">${t('reviewedBy')}${inp('reviewed_by',ra)}</label><label class="f">${t('accepted')}${inp('accepted_date',ra,'date')}</label></div></div>
+  <div class="card"><h2>${t('sec4')}</h2><label class="f">${t('evidence')}${ta('objective_evidence',rr)}</label><div class="row" style="margin-top:8px"><label class="f">${t('verifier')}${inp('verifying_auditor',ra)}</label><label class="f">${t('closeDate')}${inp('close_date',ra,'date')}</label></div></div>
+  ${rr?`<div class="row"><button class="btn acc" data-a="savecar" data-id="${c.id}">${t('save')}</button>${ra?(c.status==='open'?`<button class="btn" data-a="closecar" data-id="${c.id}">${t('closeCar')}</button>`:`<button class="btn sec" data-a="reopencar" data-id="${c.id}">${t('reopen')}</button>`):''}</div><div class="err">${esc(S.err)}</div>`:''}`);
+}
+function collectCar(){
+  const p={}; document.querySelectorAll('[data-c]').forEach(el=>{ if(el.type==='radio'){ if(el.checked) p.review_decision=+el.value; return; } if(el.disabled) return; let v=el.value; if(el.type==='date'&&!v) v=null; p[el.dataset.c]=v; });
+  return p;
+}
+function ncView(){
+  const sites=scopedSites(); let sid=+(S.filters.site||(sites[0]&&sites[0].id)||0);
+  return layout(`<h1>${t('nc')}</h1><div class="card"><div class="row"><label class="f">${t('site')}<select data-f="site">${sites.map(s=>`<option value="${s.id}" ${sid===s.id?'selected':''}>${esc(s.name)}</option>`).join('')}</select></label><a class="btn acc" href="#/doc/nc/${sid}">${t('docNc')} PDF</a></div></div>${carTableFor(sid)}`);
+}
+function carTableFor(sid){ const cs=D().cars.filter(c=>c.site_id===sid).sort((a,b)=>a.car_no.localeCompare(b.car_no)); return `<div class="card">${cs.length?carTable(cs):`<div class="empty">${t('none')}</div>`}</div>`; }
+function adminView(){
+  const ps=D().profiles; 
+  const sel=(opts,val,attrs)=>`<select ${attrs}><option value="">—</option>${opts.map(o=>`<option value="${o.id}" ${val===o.id?'selected':''}>${esc(o.name)}</option>`).join('')}</select>`;
+  return layout(`<h1>${t('admin')}</h1><div class="card"><h2>${t('users')}</h2><p class="s" style="color:var(--mut);margin-top:0">${t('roleHelp')}</p><div class="scroll"><table class="t"><thead><tr><th>${t('email')}</th><th>${t('name')}</th><th>${t('role')}</th><th>${t('site')}</th><th>${t('dept')}</th><th></th></tr></thead><tbody>
+  ${ps.map(p=>`<tr><td dir="ltr">${esc(p.email)}</td><td>${esc(p.full_name)}</td><td><select data-u="${p.id}" data-k="role">${['pending','owner','site_manager','auditor','dept_manager'].map(r=>`<option value="${r}" ${p.role===r?'selected':''}>${t(r)}</option>`).join('')}</select></td><td>${sel(D().sites,p.site_id,`data-u="${p.id}" data-k="site_id"`)}</td><td>${sel(D().departments,p.department_id,`data-u="${p.id}" data-k="department_id"`)}</td><td><button class="btn sm" data-a="saveuser" data-id="${p.id}">${t('save')}</button></td></tr>`).join('')}</tbody></table></div></div>
+  <div class="grid two"><div class="card"><h2>${t('sites')}</h2><table class="t"><tbody>${D().sites.map(s=>`<tr><td>${esc(s.name)}</td></tr>`).join('')}</tbody></table><div class="row" style="margin-top:10px"><label class="f">${t('name')}<input id="newSite"></label><button class="btn sm" data-a="addsite">${t('add')}</button></div></div>
+  <div class="card"><h2>${t('deps')}</h2><table class="t"><tbody>${D().departments.map(s=>`<tr><td>${esc(s.name)}</td><td dir="ltr">${esc(s.code)}</td></tr>`).join('')}</tbody></table><div class="row" style="margin-top:10px"><label class="f">${t('name')}<input id="newDep"></label><label class="f" style="min-width:90px">${t('code')}<input id="newDepCode" maxlength="4" dir="ltr"></label><button class="btn sm" data-a="adddep">${t('add')}</button></div></div></div><div class="err">${esc(S.err)}</div>`);
+}
+
+/* ---------------- paper documents ---------------- */
+const FORM={nc:['EGN-FOR-QHSE-001-04','Non-Conformity List'],audit:['EGN-FOR-QHSE-001-02','Internal Audit Report'],car:['EGN-FOR-QHSE-001-03','NON-CONFORMITY & CORRECTIVE ACTION REPORT']};
+const siteShort = s => s.name.replace(/^Edge\s+/,'');
+const hdrDoc=(title)=>`<div class="hdr"><img src="${LOGO}" alt="edge"><h3>${esc(title)}</h3></div>`;
+const ftrDoc=(code)=>`<div class="ftr pf"><span>Form code: ${code}</span><span>Version no: 01</span><span style="text-align:right">Effective date: 18/10/2026<br>Page 1 of 1</span></div>`;
+function docToolbar(back){ return `<div class="doc-tools"><a class="btn sec" href="${back}">${t('back')}</a><button class="btn acc" data-a="print">${t('printPdf')}</button></div>`; }
+function docNc(sid){
+  const s=byId('sites',sid); if(!s) return layout(`<div class="empty">${t('none')}</div>`);
+  const cs=D().cars.filter(c=>c.site_id===sid).sort((a,b)=>a.car_no.localeCompare(b.car_no));
+  const pages=[]; for(let i=0;i<Math.max(cs.length,1);i+=20) pages.push(cs.slice(i,i+20));
+  const html=pages.map((pg,pi)=>{ const rows=[]; for(let i=0;i<20;i++){const c=pg[i]; rows.push(`<tr style="height:30px"><td class="v">${c?esc(c.car_no):''}</td><td class="v">${c?fmt(c.date_raised):''}</td><td class="v">${c?esc(depName(c.department_id)):''}</td><td class="v" style="text-align:center">${c&&c.status==='closed'?'✓':''}</td><td class="v" style="text-align:center">${c&&c.status==='open'?'✓':''}</td></tr>`);}
+    return `<div class="paper port">${hdrDoc('Non-Conformity List - ('+siteShort(s)+')')}<table><thead><tr><th rowspan="2" style="width:20%">CAR Number</th><th rowspan="2" style="width:17%">Date</th><th rowspan="2">Department</th><th colspan="2" style="width:24%">Result</th></tr><tr><th>Closed</th><th>Open</th></tr></thead><tbody>${rows.join('')}</tbody></table><div class="ftr pf"><span>Form code: ${FORM.nc[0]}</span><span>Version no:01</span><span style="text-align:right">Effective date: 18/10/2026<br>Page ${pi+1} of ${pages.length}</span></div></div>`;}).join('');
+  return layout(docToolbar('#/nc')+`<div class="paper-wrap">${html}</div>`);
+}
+function docAudit(id){
+  const a=byId('audits',+id); if(!a) return layout(`<div class="empty">${t('none')}</div>`);
+  const s=byId('sites',a.site_id), dn=depName(a.department_id); const fs=D().findings.filter(f=>f.audit_id===a.id).sort((x,y)=>(x.sn||0)-(y.sn||0));
+  const rowsHtml=fs.map((f,i)=>{const nc=f.result==='minor'||f.result==='major'; const res=nc?`Nonconformity - ${f.result==='major'?'Major':'Minor'}${f.car_no?' ('+f.car_no+')':''}`:(f.result==='ofi'?'Observation / OFI':'Conformity');
+    return `<tr><td style="text-align:center" class="v">${i+1}</td><td class="v">${esc(f.audit_point)}${f.iso_refs?' (ISO ref. '+esc(f.iso_refs)+')':''}</td><td class="v">${esc(res)}</td><td class="v">${esc(f.corrective_action)}</td><td class="v">${esc(f.responsible||dn)}</td><td class="v">${fmt(f.due_date)}</td></tr>`;});
+  const total=Math.max(12,rowsHtml.length); while(rowsHtml.length<total) rowsHtml.push('<tr style="height:26px"><td></td><td></td><td></td><td></td><td></td><td></td></tr>');
+  return layout(docToolbar('#/audits')+`<div class="paper-wrap"><div class="paper land">${hdrDoc('Internal Audit Report - ('+siteShort(s)+')')}
+  <div class="v" style="font-weight:700;margin-bottom:6px"><span style="margin-inline-end:24px">Audited Department: ${esc(dn)}</span><span style="margin-inline-end:24px">Site: ${esc(s.full_name||s.name)}</span><span>Audit date: ${fmt(a.audit_date)}</span></div>
+  <table><thead><tr><th style="width:4%;font-size:12px">SN</th><th style="width:30%">Audit Point</th><th style="width:15%;font-size:12px">Conformity / Nonconformity</th><th style="width:24%">Corrective Action</th><th style="width:14%;font-size:12px">Responsible Department</th><th style="width:10%;font-size:12px">Due Date</th></tr></thead><tbody>${rowsHtml.join('')}</tbody></table>
+  <table style="margin-top:0"><tr><td style="width:50%;height:100px"><div class="ln">Manager of the Audited Department</div><div class="ln" style="margin-top:14px">Name: ............................................................</div><div class="ln" style="margin-top:10px">Signature: ........................................................</div><div class="ln" style="margin-top:10px">Date: .... / .... / ........</div></td>
+  <td><div class="ln">Auditor</div><div class="ln" style="margin-top:14px">Name: <span class="v">${esc(a.auditor_name)}</span> ..............................................</div><div class="ln" style="margin-top:10px">Signature: ........................................................</div><div class="ln" style="margin-top:10px">Date: .... / .... / ..........</div></td></tr></table>
+  <div class="ftr" style="margin-top:14px"><span>Form code: ${FORM.audit[0]}</span><span>Version no:01</span><span style="text-align:right">Effective date: 18/10/2026<br>Page 1 of 1</span></div></div></div>`);
+}
+function docCar(id){
+  const c=byId('cars',+id); if(!c) return layout(`<div class="empty">${t('none')}</div>`);
+  const s=byId('sites',c.site_id); const box=n=>`<span class="cb">${c.review_decision===n?'X':''}</span>`;
+  const decs=['Auditor has reviewed and accepted the correction and plan for corrective action - released for review and closure at the next audit. No objective evidence required at this time','Auditor has reviewed and accepted the correction and plan for corrective action and objective evidence of implementation – closed. Objective evidence required','Auditor has reviewed, accepted and verified the correction and corrective actions proposed and objective evidence of implementation – closed or downgraded to minor. Objective evidence required','Auditor has reviewed, accepted and verified the correction and corrective actions proposed, but the effectiveness requires an on-site audit before closure. Special visit required for on-site verification'];
+  const v=x=>`<span class="v">${esc(x==null?'':x)}</span>`;
+  const blk=(h,sub,val,hh)=>`<tr><td style="background:#f4f4f4;border-bottom:0"><span class="lbl">${h}</span> ${sub}</td></tr><tr><td style="height:${hh}px" class="v">${esc(val)}</td></tr>`;
+  return layout(docToolbar('#/car/'+c.id)+`<div class="paper-wrap"><div class="paper port">${hdrDoc('NON-CONFORMITY & CORRECTIVE ACTION REPORT ('+siteShort(s)+')')}
+  <div style="font-family:Arial;font-weight:700;font-size:15px;margin:14px 0 8px">CORRECTIVE ACTION REQUEST</div>
+  <table><tr><td class="lbl" style="width:14%;text-align:center">Site Name</td><td>${v(s.full_name||s.name)}</td><td class="lbl" style="width:16%">DATE RAISED:</td><td style="width:20%;text-align:center">${v(fmt(c.date_raised))}</td></tr>
+  <tr><td class="lbl" style="text-align:center">Classification: Major/Minor</td><td>${v(c.classification==='major'?'Major':'Minor')}</td><td class="lbl">CAR No:</td><td style="text-align:center">${v(c.car_no)}</td></tr></table>
+  <table style="margin-top:-1px"><tr><td class="sec">SECTION 1 – AUDITOR FINDINGS</td></tr><tr><td style="min-height:48px;height:54px" class="v">${esc(c.auditor_findings)}</td></tr>
+  <tr><td class="sec">SECTION 2 – RESPONSE AND PLANNED ACTIONS</td></tr>
+  ${blk('CORRECTION: -','(What action you have taken to correct the problem)',c.correction,50)}${blk('Analysis of the Root Cause: -','(What do you think caused the problem in the first place, and why?)',c.root_cause,44)}${blk('Description of the specific Corrective Actions taken, or planned to be taken: -','(What do you intend to do to address the Root Cause that you have identified above?)',c.corrective_action,50)}</table>
+  <table style="margin-top:-1px"><tr><td class="lbl" style="width:16%">Proposed By:</td><td style="width:26%">${v(c.proposed_by)}</td><td class="lbl" style="width:24%">Date by which Corrective Actions will be Taken:</td><td style="text-align:center">${v(fmt(c.action_date))}</td></tr></table>
+  <table style="margin-top:-1px"><tr><td class="sec" style="text-align:left" colspan="2">SECTION 3 – REVIEW BY AUDITOR</td></tr>${decs.map((x,i)=>`<tr><td style="font-size:11px">${x}</td><td style="width:34px;text-align:center">${box(i+1)}</td></tr>`).join('')}
+  <tr><td colspan="2" style="text-align:center;font-size:10.5px">JUSTIFICATION FOR THE ABOVE DECISION AND PROVIDE OBJECTIVE EVIDENCE WHERE REQUIRED.</td></tr></table>
+  <table style="margin-top:-1px"><tr><td class="lbl" style="width:22%">Response Reviewed By</td><td style="width:28%">${v(c.reviewed_by)}</td><td class="lbl" style="width:22%">Date of Acceptance:</td><td style="text-align:center">${v(fmt(c.accepted_date))}</td></tr></table>
+  <table style="margin-top:-1px"><tr><td class="sec" style="text-align:left;font-size:11.5px"><b>SECTION 4 – CAR – CLOSED.</b> Please provide the details of objective evidence of implementation of the proposed correction and corrective action.</td></tr><tr><td style="height:60px" class="v">${esc(c.objective_evidence)}</td></tr></table>
+  <table style="margin-top:-1px"><tr><td class="lbl" style="width:22%">Verifying Auditor:</td><td style="width:28%">${v(c.verifying_auditor)}</td><td class="lbl" style="width:22%">Close Out Date:</td><td style="text-align:center">${v(fmt(c.close_date))}</td></tr></table>
+  ${ftrDoc(FORM.car[0])}</div></div>`);
+}
+
+/* ---------------- router / render ---------------- */
+function view(){
+  if(!S.user) return loginView();
+  if(role()==='pending') return pendingView();
+  const [,a,b,c]=S.route.split('/');
+  switch(a){
+    case 'audits': return auditsView();
+    case 'audit': return auditFormView(b||'new');
+    case 'cars': return carsView();
+    case 'car': return carView(b);
+    case 'nc': return ncView();
+    case 'doc': return b==='car'?docCar(c):b==='audit'?docAudit(c):docNc(+c);
+    case 'admin': return role()==='owner'?adminView():dashView();
+    default: return dashView();
+  }
+}
+function render(){
+  document.documentElement.lang=S.lang; document.documentElement.dir=S.lang==='ar'?'rtl':'ltr';
+  const keepScroll=window.scrollY; const ae=document.activeElement; const info=ae&&ae.dataset&&(ae.dataset.r!=null||ae.dataset.d)?{r:ae.dataset.r,k:ae.dataset.k,d:ae.dataset.d}:null;
+  $app.innerHTML=view(); window.scrollTo(0,keepScroll);
+  if(info){ const q=info.r!=null?`[data-r="${info.r}"][data-k="${info.k}"]`:`[data-d="${info.d}"]`; const el=document.querySelector(q); if(el&&el.focus){el.focus(); try{el.setSelectionRange(el.value.length,el.value.length);}catch(e){}} }
+}
+async function reload(){ S.data=await DB.loadAll(); }
+async function route(){
+  const h=location.hash||'#/dash'; if(S.route.split('/')[1]!=='audit'&&h.split('/')[1]!=='audit'){} 
+  if(!h.startsWith('#/audit/')) S.draft=null; S.err=''; S.confirmDel=false; S.route=h; render();
+}
+window.addEventListener('hashchange',route);
+
+/* ---------------- events ---------------- */
+document.addEventListener('click',async e=>{
+  const go=e.target.closest('[data-go]'); if(go&&!e.target.closest('[data-stop]')){ location.hash=go.dataset.go; return; }
+  const el=e.target.closest('[data-a]'); if(!el) return; const a=el.dataset.a;
+  if(a==='lang'){ S.lang=S.lang==='ar'?'en':'ar'; localStorage.setItem('audit_lang',S.lang); render(); }
+  else if(a==='logout'){ await DB.signOut(); S.user=null; S.profile=null; S.data=null; render(); }
+  else if(a==='authmode'){ S.authMode=S.authMode==='in'?'up':'in'; S.err=''; render(); }
+  else if(a==='print'){ window.print(); }
+  else if(a==='addrow'){ S.draft.rows.push(newRow(byId('departments',+S.draft.department_id),S.draft.audit_date)); render(); }
+  else if(a==='rmrow'){ S.draft.rows.splice(+el.dataset.i,1); render(); }
+  else if(a==='saveaudit'){ saveAudit(); }
+  else if(a==='delaudit'){ if(!S.confirmDel){S.confirmDel=true;render();return;} try{ await DB.remove('audits',S.draft.id); await reload(); S.draft=null; location.hash='#/audits'; }catch(er){S.err=er.message;render();} }
+  else if(a==='savecar'||a==='closecar'||a==='reopencar'){
+    const id=+el.dataset.id; let p=collectCar(); const c=byId('cars',id);
+    if(a==='closecar'){ p.status='closed'; p.close_date=p.close_date||today(); p.verifying_auditor=p.verifying_auditor||S.profile.full_name||''; p.reviewed_by=p.reviewed_by||S.profile.full_name||''; p.accepted_date=p.accepted_date||today(); }
+    if(a==='reopencar'){ p.status='open'; p.close_date=null; }
+    try{ await DB.update('cars',id,p); await reload(); toast(t('saved')); render(); }catch(er){S.err=er.message;render();}
+  }
+  else if(a==='saveuser'){
+    const id=el.dataset.id; const p={}; document.querySelectorAll(`[data-u="${id}"]`).forEach(x=>{ p[x.dataset.k]=x.value===''?null:(x.dataset.k==='role'?x.value:+x.value); });
+    try{ await DB.update('profiles',id,p); await reload(); toast(t('saved')); render(); }catch(er){S.err=er.message;render();}
+  }
+  else if(a==='addsite'){ const v=document.getElementById('newSite').value.trim(); if(!v)return; try{ await DB.insert('sites',{name:v}); await reload(); render(); }catch(er){S.err=er.message;render();} }
+  else if(a==='adddep'){ const v=document.getElementById('newDep').value.trim(), c=document.getElementById('newDepCode').value.trim().toUpperCase(); if(!v||!c)return; try{ await DB.insert('departments',{name:v,code:c}); await reload(); render(); }catch(er){S.err=er.message;render();} }
+});
+document.addEventListener('input',e=>{
+  const el=e.target;
+  if(el.dataset.r!=null&&S.draft){ S.draft.rows[+el.dataset.r][el.dataset.k]=el.value; }
+  else if(el.dataset.d&&S.draft&&el.tagName!=='SELECT'){ S.draft[el.dataset.d]=el.value; }
+});
+document.addEventListener('change',e=>{
+  const el=e.target;
+  if(el.id==='demoRole'){ DB.switchRole(el.value); return; }
+  if(el.dataset.f){ S.filters[el.dataset.f]=el.value; render(); return; }
+  if(el.dataset.d&&S.draft&&el.tagName==='SELECT'){ const k=el.dataset.d; S.draft[k]=el.value===''?'':+el.value; if(k==='department_id'){ const dep=byId('departments',S.draft.department_id); S.draft.rows.forEach(r=>{ if(!r.id&&dep&&!r.responsible) r.responsible=dep.name; }); } render(); return; }
+  if(el.dataset.r!=null&&S.draft&&el.tagName==='SELECT'){ S.draft.rows[+el.dataset.r][el.dataset.k]=el.value; render(); }
+});
+document.addEventListener('submit',async e=>{
+  if(e.target.id!=='authForm') return; e.preventDefault();
+  const f=new FormData(e.target); S.busy=true; S.err=''; render();
+  try{
+    if(S.authMode==='up') await DB.signUp(f.get('email'),f.get('pw'),f.get('name')); else await DB.signIn(f.get('email'),f.get('pw'));
+    await boot();
+  }catch(er){ S.busy=false; S.err=er.message; render(); }
+});
+
+async function boot(){
+  const r=await DB.init(); S.busy=false;
+  if(r){ S.user=r.user; S.profile=r.profile; if(role()!=='pending') await reload(); }
+  await route();
+}
+boot().catch(e=>{ $app.innerHTML='<div class="login"><div class="card"><p class="err">'+esc(e.message)+'</p></div></div>'; });
+})();
