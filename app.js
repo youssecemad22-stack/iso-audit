@@ -15,7 +15,7 @@ const T = {
 ar:{app:'نظام الأوديت',dash:'لوحة المتابعة',audits:'الأوديتات',cars:'الـ CAR',nc:'قايمة الـ NC',admin:'الإدارة',logout:'خروج',login:'دخول',signup:'حساب جديد',email:'الايميل',password:'الباسورد',fullname:'الاسم',
  loginSub:'سجل دخولك لمتابعة الأوديت',haveAcc:'عندي حساب',noAcc:'مفيش حساب؟ اعمل واحد',pendingT:'حسابك مستني الموافقة',pendingP:'مدير النظام لازم يحدد صلاحياتك (القسم والمكان). كلمه وهيفتحلك.',
  site:'المكان',dept:'القسم',allSites:'كل الأماكن',allDeps:'كل الأقسام',from:'من شهر',to:'إلى شهر',
- kAudits:'أوديتات',kPoints:'نقاط تم فحصها',kConf:'نسبة المطابقة',kNC:'عدم مطابقة',kOpen:'CAR مفتوحة',kOver:'CAR متأخرة',kMajor:'Major مفتوحة',
+ kAudits:'أوديتات',kPoints:'نقاط تم فحصها',kConf:'نسبة المطابقة',kNC:'عدم مطابقة',kOpen:'CAR مفتوحة',plan:'Audit Plan',kOver:'CAR متأخرة',kMajor:'Major مفتوحة',
  confByDep:'نسبة المطابقة لكل قسم',perMonth:'النتايج لكل شهر',sitesCmp:'مقارنة الأماكن',topIso:'أكتر بنود ISO تكرارا في عدم المطابقة',overdueList:'الـ CAR المتأخرة',
  ncByDep:'عدم المطابقة لكل قسم (من إجمالي النقاط)',conforming:'مطابق',minor:'Minor',major:'Major',ofi:'ملاحظة / فرصة تحسين',nonconf:'عدم مطابقة',
  none:'مفيش بيانات',newAudit:'أوديت جديد',date:'التاريخ',auditor:'الأوديتور',points:'النقاط',open:'مفتوح',closed:'مقفول',overdue:'متأخر',status:'الحالة',
@@ -33,7 +33,7 @@ ar:{app:'نظام الأوديت',dash:'لوحة المتابعة',audits:'ال�
 en:{app:'Audit System',dash:'Dashboard',audits:'Audits',cars:'CARs',nc:'NC list',admin:'Admin',logout:'Sign out',login:'Sign in',signup:'Create account',email:'Email',password:'Password',fullname:'Full name',
  loginSub:'Sign in to follow your audits',haveAcc:'I have an account',noAcc:'No account? Create one',pendingT:'Your account is waiting for approval',pendingP:'The system owner must assign your access (department and site). Ask them to open it.',
  site:'Site',dept:'Department',allSites:'All sites',allDeps:'All departments',from:'From month',to:'To month',
- kAudits:'Audits',kPoints:'Points checked',kConf:'Conformity',kNC:'Nonconformities',kOpen:'Open CARs',kOver:'Overdue CARs',kMajor:'Open Majors',
+ plan:'Audit Plan',kAudits:'Audits',kPoints:'Points checked',kConf:'Conformity',kNC:'Nonconformities',kOpen:'Open CARs',kOver:'Overdue CARs',kMajor:'Open Majors',
  confByDep:'Conformity by department',perMonth:'Results per month',sitesCmp:'Site comparison',topIso:'Most repeated ISO points in nonconformities',overdueList:'Overdue CARs',
  ncByDep:'Nonconformities by department (of points checked)',conforming:'Conforming',minor:'Minor',major:'Major',ofi:'Observation / OFI',nonconf:'Nonconformity',
  none:'No data',newAudit:'New audit',date:'Date',auditor:'Auditor',points:'Points',open:'Open',closed:'Closed',overdue:'Overdue',status:'Status',
@@ -53,7 +53,7 @@ en:{app:'Audit System',dash:'Dashboard',audits:'Audits',cars:'CARs',nc:'NC list'
 /* ---------------- state ---------------- */
 const S = { lang: 'en', user:null, profile:null, data:null, route:'', err:'', busy:false, filters:{site:'',dep:'',from:'',to:''}, draft:null, confirmDel:false, authMode:'in' };
 const t = k => (T[S.lang]&&T[S.lang][k]) || T.en[k] || k;
-const TABLES = ['sites','departments','audits','findings','cars'];
+const TABLES = ['sites','departments','audits','findings','cars','audit_plan'];
 
 /* ---------------- data layer ---------------- */
 const DB = {};
@@ -64,7 +64,7 @@ if (CFG.mode === 'demo') {
     store = JSON.parse(localStorage.getItem(KEY)||'null');
     if(!store){
       const seed = await (await fetch('demo-seed.json')).json();
-      store={seq:1000,sites:[],departments:[],audits:[],findings:[],cars:[],profiles:[],me:'owner'};
+      store={seq:1000,audit_plan:[],sites:[],departments:[],audits:[],findings:[],cars:[],profiles:[],me:'owner'};
       seed.sites.forEach((n,i)=>store.sites.push({id:i+1,name:n,full_name:n==='Edge KOV'?'Edge Innovation Center - LARZ Branch':null}));
       seed.deps.forEach((d,i)=>store.departments.push({id:i+1,name:d[0],code:d[1]}));
       const kov=store.sites.find(s=>s.name==='Edge KOV').id;
@@ -96,10 +96,11 @@ if (CFG.mode === 'demo') {
     out.audits=store.audits.filter(a=>canSee(p,a.site_id,a.department_id));
     const ids=new Set(out.audits.map(a=>a.id)); out.findings=store.findings.filter(f=>ids.has(f.audit_id));
     out.cars=store.cars.filter(c=>canSee(p,c.site_id,c.department_id));
+    out.audit_plan=(store.audit_plan||[]).filter(c=>canSee(p,c.site_id,c.department_id));
     out.profiles=p.role==='owner'?store.profiles.slice():[p];
     return out;
   };
-  DB.insert=async(tb,row)=>{const r=Object.assign({id:++store.seq},row);store[tb].push(r);save();return r;};
+  DB.insert=async(tb,row)=>{store[tb]=store[tb]||[];const r=Object.assign({id:++store.seq},row);store[tb].push(r);save();return r;};
   DB.update=async(tb,id,patch)=>{const r=store[tb].find(x=>x.id===id);Object.assign(r,patch);save();return r;};
   DB.remove=async(tb,id)=>{store[tb]=store[tb].filter(x=>x.id!==id);if(tb==='audits')store.findings=store.findings.filter(f=>f.audit_id!==id);save();};
   DB.demoProfiles=()=>store.profiles;
@@ -182,7 +183,7 @@ const pct=(a,b)=>b?Math.round(a*100/b):null;
 
 /* ---------------- views ---------------- */
 function layout(inner){
-  const links=[['#/dash','dash'],['#/audits','audits'],['#/cars','cars'],['#/nc','nc']]; if(role()==='owner') links.push(['#/admin','admin']);
+  const links=[['#/dash','dash'],['#/audits','audits'],['#/plan','plan'],['#/cars','cars'],['#/nc','nc']]; if(role()==='owner') links.push(['#/admin','admin']);
   const cur=S.route.split('/')[1]||'dash';
   const demo = CFG.mode==='demo' ? `<div class="demo-bar">${t('demo')} <select id="demoRole">${DB.demoProfiles().map(p=>`<option value="${p.id}" ${p.id===S.user.id?'selected':''}>${esc(p.full_name)} (${esc(p.role)})</option>`).join('')}</select></div>`:'';
   return demo+`<div class="top"><div class="top-in"><div class="brand"><img class="raya" src="${RAYA}" alt="Raya Smart Buildings">${t('app')}</div>
@@ -217,7 +218,7 @@ function dashView(){
   const nc=findings.filter(x=>x.result==='minor'||x.result==='major');
   const hasConf=findings.some(x=>x.result==='conforming'||x.result==='ofi'); const conf=hasConf?pct(findings.length-nc.length,findings.length):null;
   const open=cars.filter(c=>c.status==='open'), over=cars.filter(isOverdue), majO=open.filter(c=>c.classification==='major');
-  const kpi=(n,l,cls='')=>`<div class="kpi ${cls}"><b>${n}</b><span>${l}</span></div>`;
+  const kpi=(n,l,cls='')=>`<div class="kpi ${cls}"><b ${typeof n==='number'?`data-count="${n}"`:''}>${n}</b><span>${l}</span></div>`;
   // by department
   const depRows=D().departments.map(d=>{const fs=findings.filter(x=>{const a=byId('audits',x.audit_id);return a&&a.department_id===d.id;}); const n=fs.filter(x=>x.result==='minor'||x.result==='major').length; return {d,total:fs.length,n};}).filter(r=>r.total);
   const depHtml=depRows.length?depRows.map(r=>{const p=pct(r.total-r.n,r.total); if(!hasConf) return `<div class="br"><span>${esc(r.d.name)}</span><div class="bar"><i style="width:${pct(r.n,r.total)}%;background:var(--amb)"></i></div><b>${r.n}/${r.total}</b></div>`; return `<div class="br"><span>${esc(r.d.name)}</span><div class="bar"><i style="width:${p}%;background:${p>=80?'var(--grn)':p>=50?'var(--amb)':'var(--red)'}"></i></div><b>${p}%</b></div>`;}).join(''):`<div class="empty">${t('none')}</div>`;
@@ -233,10 +234,16 @@ function dashView(){
   // sites comparison (visible sites)
   const sRows=D().sites.map(s=>{const as=audits.filter(a=>a.site_id===s.id); if(!as.length&&!cars.some(c=>c.site_id===s.id))return null; const ids=new Set(as.map(a=>a.id)); const fs=findings.filter(x=>ids.has(x.audit_id)); const n=fs.filter(x=>x.result==='minor'||x.result==='major').length; const cs=cars.filter(c=>c.site_id===s.id); return {s,a:as.length,f:fs.length,p:hasConf?pct(fs.length-n,fs.length):null,o:cs.filter(c=>c.status==='open').length,ov:cs.filter(isOverdue).length};}).filter(Boolean);
   const siteHtml=sRows.length>0&&(role()==='owner'||sRows.length>1)?`<div class="card"><h2>${t('sitesCmp')}</h2><div class="scroll"><table class="t"><thead><tr><th>${t('site')}</th><th>${t('kAudits')}</th><th>${t('kPoints')}</th><th>${t('kConf')}</th><th>${t('kOpen')}</th><th>${t('kOver')}</th></tr></thead><tbody>${sRows.map(r=>`<tr><td><b>${esc(r.s.name)}</b></td><td>${r.a}</td><td>${r.f}</td><td>${r.p==null?'—':r.p+'%'}</td><td>${r.o}</td><td>${r.ov?`<span class="badge b-over">${r.ov}</span>`:0}</td></tr>`).join('')}</tbody></table></div></div>`:'';
+  const planOver=planPairs().flatMap(([s,d])=>[1,2,3,4].filter(q=>planCellState(s.id,d.id,qOf(today()).y,q).st==='overdue').map(q=>[s,d,q]));
+  const planOverHtml=planOver.length?`<div class="card"><h2>⚠ Overdue audits (${planOver.length})</h2><div class="scroll"><table class="t"><tbody>${planOver.slice(0,15).map(([s,d,q])=>`<tr><td><b>${esc(s.name)}</b></td><td>${esc(d.name)}</td><td>Q${q} ${qOf(today()).y}</td></tr>`).join('')}</tbody></table></div><p class="s"><a href="#/plan">Open the audit plan</a></p></div>`:'';
   const overHtml=over.length?`<div class="card"><h2>⚠ ${t('overdueList')}</h2>${carTable(over)}</div>`:'';
-  return layout(`<h1>${t('dash')}</h1>${filterBar()}
-  <div class="grid kpis" style="margin-bottom:14px">${kpi(audits.length,t('kAudits'))}${kpi(findings.length,t('kPoints'))}${kpi(conf==null?'—':conf+'%',t('kConf'),conf==null?'':conf>=80?'good':conf>=50?'warn':'bad')}${kpi(nc.length,t('kNC'),nc.length?'warn':'')}${kpi(open.length,t('kOpen'),open.length?'warn':'good')}${kpi(over.length,t('kOver'),over.length?'bad':'good')}${kpi(majO.length,t('kMajor'),majO.length?'bad':'good')}</div>
-  ${overHtml}${siteHtml}
+  const ser=quarterSeries(audits,findings);
+  return layout(`${heroHtml(audits,cars,over)}<div class="noprint">${filterBar()}</div>
+  <div class="grid kpis" style="margin-bottom:14px">${kpi(audits.length,t('kAudits'))}${kpi(findings.length,t('kPoints'))}${kpi(conf==null?'—':conf+'%',t('kConf'),conf==null?'':conf>=80?'good':conf>=50?'warn':'bad')}${kpi(nc.length,t('kNC'),nc.length?'warn':'')}${kpi(open.length,t('kOpen'),open.length?'warn':'good')}${kpi(over.length,t('kOver'),over.length?'bad':'good')}${planKpi()}${kpi(majO.length,t('kMajor'),majO.length?'bad':'good')}</div>
+  ${planRings()}${planMatrix()}
+  <div class="grid two"><div class="card"><h2>Quarterly trend</h2>${trendChart(ser,hasConf)}</div><div class="card"><h2>Open CAR ageing</h2>${ageingHtml(open)}</div></div>
+  <div class="card"><h2>Nonconformity heatmap · site × department</h2>${heatmapHtml(findings)}</div>
+  ${planOverHtml}${overHtml}${siteHtml}
   <div class="grid two"><div class="card bars"><h2>${hasConf?t('confByDep'):t('ncByDep')}</h2>${depHtml}</div><div class="card"><h2>${t('perMonth')}</h2>${monHtml}</div></div>
   <div class="card"><h2>${t('topIso')}</h2>${topHtml}</div>`);
 }
@@ -329,6 +336,98 @@ function ncView(){
   return layout(`<h1>${t('nc')}</h1><div class="card"><div class="row"><label class="f">${t('site')}<select data-f="site">${sites.map(s=>`<option value="${s.id}" ${sid===s.id?'selected':''}>${esc(s.name)}</option>`).join('')}</select></label><a class="btn acc" href="#/doc/nc/${sid}">${t('docNc')} PDF</a></div></div>${carTableFor(sid)}`);
 }
 function carTableFor(sid){ const cs=D().cars.filter(c=>c.site_id===sid).sort((a,b)=>a.car_no.localeCompare(b.car_no)); return `<div class="card">${cs.length?carTable(cs):`<div class="empty">${t('none')}</div>`}</div>`; }
+
+/* ---------------- audit plan (one audit per department per quarter) ---------------- */
+const PLAN_START={y:2026,q:4}; // quarters before this are not tracked
+const qOf=iso=>({y:+iso.slice(0,4),q:Math.floor((+iso.slice(5,7)-1)/3)+1});
+const qStart=(y,q)=>y+'-'+String((q-1)*3+1).padStart(2,'0')+'-01';
+const qEnd=(y,q)=>{const m=q*3; return y+'-'+String(m).padStart(2,'0')+'-'+new Date(Date.UTC(y,m,0)).getUTCDate();};
+const canPlan=()=>['owner','auditor','site_manager'].includes(role());
+function planCellState(sid,did,y,q){
+  if(y<PLAN_START.y||(y===PLAN_START.y&&q<PLAN_START.q)) return {st:'na'};
+  const a=qStart(y,q), b=qEnd(y,q);
+  const au=D().audits.filter(x=>x.site_id===sid&&x.department_id===did&&x.audit_date>=a&&x.audit_date<=b).sort((m,n)=>m.audit_date.localeCompare(n.audit_date))[0];
+  const rec=(D().audit_plan||[]).find(r=>r.site_id===sid&&r.department_id===did&&r.year===y&&r.quarter===q);
+  if(au) return {st:'done',au,rec};
+  const od=b<today()||(rec&&rec.planned_date&&rec.planned_date<today());
+  return {st:od?'overdue':'planned',rec};
+}
+function planPairs(){
+  const f=S.filters, sites=scopedSites().filter(x=>!f.site||x.id==f.site), deps=scopedDeps().filter(d=>!f.dep||d.id==f.dep); const out=[];
+  sites.forEach(s=>deps.forEach(d=>{ if(depAt(d,s.id)) out.push([s,d]); })); return out;
+}
+function planStats(y,q,pairs){ const r={total:0,done:0,overdue:0,planned:0}; pairs.forEach(([s,d])=>{const c=planCellState(s.id,d.id,y,q); if(c.st==='na')return; r.total++; r[c.st]++;}); return r; }
+function planMatrix(){
+  const f=S.filters, cq=qOf(today()), y=S.planYear||cq.y, q=S.planQ||cq.q;
+  const sites=scopedSites().filter(x=>!f.site||x.id==f.site), deps=scopedDeps().filter(d=>!f.dep||d.id==f.dep);
+  const st=planStats(y,q,planPairs()); const p=pct(st.done,st.total);
+  const cell=(s,d)=>{ if(!depAt(d,s.id)) return '<td style="color:var(--mut);text-align:center">·</td>'; const c=planCellState(s.id,d.id,y,q);
+    if(c.st==='na') return '<td style="color:var(--mut);text-align:center">—</td>';
+    if(c.st==='done') return `<td style="text-align:center"><a href="#/audit/${c.au.id}"><span class="badge b-ok">✓ Done</span></a><div class="s" style="color:var(--mut)">${fmt(c.au.audit_date)}</div></td>`;
+    const dv=c.rec&&c.rec.planned_date; return `<td style="text-align:center">${c.st==='overdue'?'<span class="badge b-over">Overdue</span>':'<span class="badge b-open">Planned</span>'}${dv?`<div class="s" style="color:var(--mut)">${fmt(dv)}</div>`:''}</td>`; };
+  return `<div class="card"><div class="spread"><h2 style="margin:0">Audit plan · Q${q} ${y}</h2><div class="row"><label class="f" style="min-width:90px">Quarter<select data-pq="1">${[1,2,3,4].map(v=>`<option value="${v}" ${v===q?'selected':''}>Q${v}</option>`).join('')}</select></label><a class="btn sm sec" href="#/plan">Open plan</a></div></div>
+  <p class="s" style="color:var(--mut)">${st.total?`${st.done} of ${st.total} done (${p}%) · ${st.planned} planned · ${st.overdue} overdue`:'This quarter is not tracked.'}</p>
+  <div class="scroll"><table class="t"><thead><tr><th>${t('site')}</th>${deps.map(d=>`<th style="text-align:center">${esc(d.name)}</th>`).join('')}</tr></thead><tbody>${sites.map(s=>`<tr><td><b>${esc(s.name)}</b></td>${deps.map(d=>cell(s,d)).join('')}</tr>`).join('')}</tbody></table></div></div>`;
+}
+
+/* ---------------- dashboard visuals ---------------- */
+const daysBetween=(a,b)=>Math.floor((new Date(b+'T12:00:00')-new Date(a+'T12:00:00'))/86400000);
+function ringSvg(p,size,label,sub,color){ const r=(size-14)/2, c=2*Math.PI*r, v=p==null?0:Math.max(0,Math.min(100,p)); const col=color||(p==null?'#c9d4d8':p>=80?'#1f9d62':p>=40?'#e8a317':'#d64545');
+  return `<div class="ring" style="width:${size}px"><svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}"><circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="#e6edef" stroke-width="10"/><circle class="rg" cx="${size/2}" cy="${size/2}" r="${r}" fill="none" stroke="${col}" stroke-width="10" stroke-linecap="round" stroke-dasharray="${c}" stroke-dashoffset="${c*(1-v/100)}" style="--c:${c}" transform="rotate(-90 ${size/2} ${size/2})"/></svg><div class="rc"><b>${p==null?'—':p+'%'}</b></div></div><div class="rl"><b>${label}</b><span>${sub}</span></div>`; }
+function planRings(){ const cq=qOf(today()), y=cq.y, pairs=planPairs();
+  return `<div class="card"><div class="spread"><h2 style="margin:0">Audit plan progress · ${y}</h2><a class="btn sm sec noprint" href="#/plan">Open plan</a></div><div class="rings">${[1,2,3,4].map(q=>{ const st=planStats(y,q,pairs); const p=st.total?pct(st.done,st.total):null; return `<div class="rwrap ${q===cq.q?'cur':''}">${ringSvg(p,104,'Q'+q,st.total?`${st.done}/${st.total} done${st.overdue?` · <i style="color:var(--red);font-style:normal">${st.overdue} overdue</i>`:''}`:'not tracked')}</div>`; }).join('')}</div></div>`; }
+function quarterSeries(audits,findings){
+  const cq=qOf(today()); const keys=[]; let y=cq.y,q=cq.q; for(let i=0;i<4;i++){ keys.unshift([y,q]); q--; if(q<1){q=4;y--;} }
+  const first=audits.map(a=>qOf(a.audit_date)).sort((a,b)=>a.y-b.y||a.q-b.q)[0]; while(first&&(first.y<keys[0][0]||(first.y===keys[0][0]&&first.q<keys[0][1]))){ let [py,pq]=keys[0]; pq--; if(pq<1){pq=4;py--;} keys.unshift([py,pq]); if(keys.length>8)break; }
+  return keys.map(([y,q])=>{ const a=qStart(y,q), b=qEnd(y,q); const ids=new Set(audits.filter(x=>x.audit_date>=a&&x.audit_date<=b).map(x=>x.id)); const fs=findings.filter(x=>ids.has(x.audit_id)); const mi=fs.filter(x=>x.result==='minor').length, ma=fs.filter(x=>x.result==='major').length; const good=fs.filter(x=>x.result==='conforming'||x.result==='ofi').length; return {y,q,n:ids.size,pts:fs.length,mi,ma,conf:(good>0)?pct(fs.length-mi-ma,fs.length):null}; });
+}
+function trendChart(ser,hasConf){
+  const W=560,H=240,L=34,B=34,T=18,R=12, pw=W-L-R, ph=H-B-T; const mx=Math.max(1,...ser.map(x=>x.mi+x.ma)); const bw=Math.min(54,pw/ser.length*0.55);
+  const X=i=>L+pw/ser.length*(i+0.5), Y=v=>T+ph-(v/mx)*ph;
+  const grid=[0,0.25,0.5,0.75,1].map(f=>{const yy=T+ph-f*ph; return `<line x1="${L}" x2="${W-R}" y1="${yy}" y2="${yy}" stroke="#e6edef"/><text x="${L-6}" y="${yy+4}" text-anchor="end" font-size="10" fill="#8a9ba2">${Math.round(mx*f)}</text>`;}).join('');
+  const bars=ser.map((x,i)=>{ const hm=(x.mi/mx)*ph, hM=(x.ma/mx)*ph; return `<g class="bar-g" style="--d:${i*80}ms"><rect x="${X(i)-bw/2}" y="${T+ph-hm}" width="${bw}" height="${hm}" rx="4" fill="#e8a317"/><rect x="${X(i)-bw/2}" y="${T+ph-hm-hM}" width="${bw}" height="${hM}" rx="4" fill="#d64545"/>${(x.mi+x.ma)?`<text x="${X(i)}" y="${T+ph-hm-hM-6}" text-anchor="middle" font-size="11" font-weight="700" fill="#14262d">${x.mi+x.ma}</text>`:''}<text x="${X(i)}" y="${H-12}" text-anchor="middle" font-size="11" fill="#5d7078">Q${x.q} ${String(x.y).slice(2)}</text></g>`; }).join('');
+  let line='';
+  if(hasConf){ const pts=ser.map((x,i)=>x.conf==null?null:[X(i),T+ph-(x.conf/100)*ph,x.conf]).filter(Boolean); if(pts.length){ line=`<polyline class="tl" points="${pts.map(p=>p[0]+','+p[1]).join(' ')}" fill="none" stroke="#1f9d62" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>`+pts.map(p=>`<circle cx="${p[0]}" cy="${p[1]}" r="4.5" fill="#fff" stroke="#1f9d62" stroke-width="2.5"/><text x="${p[0]}" y="${p[1]-10}" text-anchor="middle" font-size="10.5" font-weight="700" fill="#1f9d62">${p[2]}%</text>`).join(''); } }
+  const empty=ser.every(x=>!x.n)?`<text x="${W/2}" y="${H/2}" text-anchor="middle" fill="#8a9ba2" font-size="13">No audits in this period yet</text>`:'';
+  return `<svg viewBox="0 0 ${W} ${H}" class="chart" role="img" aria-label="Nonconformities and conformity by quarter">${grid}${bars}${line}${empty}</svg><div class="legend"><span><i style="background:#e8a317"></i>Minor NC</span><span><i style="background:#d64545"></i>Major NC</span>${hasConf?'<span><i style="background:#1f9d62"></i>Conformity %</span>':''}</div>`;
+}
+function ageingHtml(open){
+  const B=[['0-7 days',0,7,'#1f9d62'],['8-14 days',8,14,'#8bb83a'],['15-30 days',15,30,'#e8a317'],['31-60 days',31,60,'#e3772b'],['60+ days',61,99999,'#d64545']];
+  const ds=open.map(c=>Math.max(0,daysBetween(c.date_raised||today(),today()))); const cnt=B.map(([l,a,b,c])=>ds.filter(d=>d>=a&&d<=b).length); const mx=Math.max(1,...cnt);
+  return `<div class="age">${B.map(([l,a,b,c],i)=>`<div class="ar"><span>${l}</span><div class="ab"><i style="width:${cnt[i]/mx*100}%;background:${c};--d:${i*70}ms"></i></div><b>${cnt[i]}</b></div>`).join('')}</div><p class="s" style="color:var(--mut);margin:8px 0 0">${open.length} open CAR${open.length===1?'':'s'}${open.length?` · oldest ${Math.max(...ds)} days`:''}</p>`;
+}
+function heatmapHtml(findings){
+  const f=S.filters, sites=scopedSites().filter(x=>!f.site||x.id==f.site), deps=scopedDeps().filter(d=>!f.dep||d.id==f.dep);
+  const val={}; findings.forEach(x=>{ const a=byId('audits',x.audit_id); if(!a)return; const k=a.site_id+'|'+a.department_id; const o=val[k]=val[k]||{n:0,t:0}; o.t++; if(x.result==='minor'||x.result==='major') o.n++; });
+  const cell=(s,d)=>{ if(!depAt(d,s.id)) return '<td class="hm na">·</td>'; const o=val[s.id+'|'+d.id]; if(!o) return '<td class="hm none">—</td>'; const r=o.n/o.t; const hue=Math.round(135*(1-r)); return `<td class="hm" style="background:hsl(${hue} 62% ${r>0.55?46:52}%);color:#fff" title="${esc(s.name)} / ${esc(d.name)}: ${o.n} nonconformities of ${o.t} points">${o.n}<small>/${o.t}</small></td>`; };
+  return `<div class="scroll"><table class="t heat"><thead><tr><th>${t('site')}</th>${deps.map(d=>`<th style="text-align:center">${esc(d.name)}</th>`).join('')}</tr></thead><tbody>${sites.map(s=>`<tr><td><b>${esc(s.name)}</b></td>${deps.map(d=>cell(s,d)).join('')}</tr>`).join('')}</tbody></table></div><div class="legend" style="margin-top:10px"><span style="display:inline-flex;align-items:center;gap:6px">Fewer NCs<i class="hmbar"></i>More NCs</span><span><i style="background:#eef2f3;border:1px solid #d5dde0"></i>Not audited</span></div>`;
+}
+function heroHtml(audits,cars,over){
+  const cq=qOf(today()), st=planStats(cq.y,cq.q,planPairs()), p=st.total?pct(st.done,st.total):null; const h=new Date().getHours(); const g=h<12?'Good morning':h<18?'Good afternoon':'Good evening'; const nm=((S.profile.full_name||'').split(' ')[0])||'';
+  const scope=S.filters.site?esc((byId('sites',+S.filters.site)||{}).name||''):(scopedSites().length>1?'All sites':esc((scopedSites()[0]||{}).name||''));
+  return `<div class="hero"><div class="hl"><span class="eyebrow">${scope} · Q${cq.q} ${cq.y}</span><h1>${g}${nm?', '+esc(nm):''}</h1><p>${st.total?`${st.done} of ${st.total} quarterly audits done${st.overdue?`, <b>${st.overdue} overdue</b>`:''}. `:''}${over.length?`<b>${over.length} CAR${over.length===1?'':'s'} overdue</b>.`:'No overdue CARs.'}</p><div class="noprint"><button class="hbtn" data-a="print">Print dashboard</button><a class="hbtn" href="#/plan">Audit plan</a></div></div><div class="hr">${ringSvg(p,132,'Q'+cq.q+' coverage',st.total?`${st.done}/${st.total} audits`:'not tracked')}</div></div>`;
+}
+function animateCounts(){ document.querySelectorAll('[data-count]').forEach(el=>{ const to=+el.dataset.count, t0=performance.now(), dur=700; const suf=el.dataset.suf||''; const step=n=>{ const k=Math.min(1,(n-t0)/dur), e=1-Math.pow(1-k,3); el.textContent=Math.round(to*e)+suf; if(k<1) requestAnimationFrame(step); }; if(!matchMedia('(prefers-reduced-motion: reduce)').matches) requestAnimationFrame(step); }); }
+function planKpi(){ const c=qOf(today()), st=planStats(c.y,c.q,planPairs()); if(!st.total) return ''; const p=pct(st.done,st.total); return `<a href="#/plan" style="text-decoration:none;color:inherit"><div class="kpi ${st.overdue?'bad':p===100?'good':'warn'}"><b>${st.done}/${st.total}</b><span>Q${c.q} audit coverage (${p}%)</span></div></a>`; }
+function planView(){
+  const f=S.filters, y=S.planYear||qOf(today()).y, pairs=planPairs(), sites=scopedSites(), deps=scopedDeps(), cq=qOf(today());
+  const yrs=[]; for(let i=PLAN_START.y;i<=Math.max(cq.y+1,y);i++) yrs.push(i);
+  const bar=`<div class="card"><div class="row"><label class="f">Year<select data-py="1">${yrs.map(v=>`<option ${v===y?'selected':''}>${v}</option>`).join('')}</select></label>
+  ${sites.length>1?`<label class="f">${t('site')}<select data-f="site"><option value="">${t('allSites')}</option>${sites.map(x=>`<option value="${x.id}" ${f.site==x.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select></label>`:''}
+  ${deps.length>1?`<label class="f">${t('dept')}<select data-f="dep"><option value="">${t('allDeps')}</option>${deps.map(d=>`<option value="${d.id}" ${f.dep==d.id?'selected':''}>${esc(d.name)}</option>`).join('')}</select></label>`:''}</div></div>`;
+  const qc=[1,2,3,4].map(q=>{const st=planStats(y,q,pairs); const p=pct(st.done,st.total); return `<div class="kpi ${st.total?(st.overdue?'bad':p===100?'good':''):''}"><b>${st.total?st.done+'/'+st.total:'—'}</b><span>Q${q} ${y} ${st.total?'done ('+p+'%)':'not tracked'}${st.overdue?' · '+st.overdue+' overdue':''}</span></div>`;}).join('');
+  const rows=pairs.map(([s,d])=>{ const cells=[1,2,3,4].map(q=>{ const c=planCellState(s.id,d.id,y,q);
+    if(c.st==='na') return '<td style="color:var(--mut);text-align:center">—</td>';
+    if(c.st==='done') return `<td><a href="#/audit/${c.au.id}"><span class="badge b-ok">✓ Done</span></a><div class="s" style="color:var(--mut)">${fmt(c.au.audit_date)}</div></td>`;
+    const bd=c.st==='overdue'?'<span class="badge b-over">Overdue</span>':'<span class="badge b-open">Planned</span>';
+    const dv=c.rec&&c.rec.planned_date||'';
+    const inp=canPlan()?`<input type="date" data-plan="${s.id}|${d.id}|${y}|${q}" value="${dv}" min="${qStart(y,q)}" max="${qEnd(y,q)}" style="margin-top:4px;max-width:150px">`:`<div class="s" style="color:var(--mut)">${dv?fmt(dv):'No date set'}</div>`;
+    return `<td>${bd}${inp}</td>`; }).join('');
+    return `<tr><td><b>${esc(s.name)}</b></td><td>${esc(d.name)}</td>${cells}</tr>`; }).join('');
+  return layout(`<h1>${t('plan')}</h1><p class="s" style="color:var(--mut);margin-top:0">Every department is audited once per quarter at each site it applies to. A cell turns Done when an audit for that site and department is entered with a date inside the quarter. It turns Overdue when the planned date passes, or the quarter ends, without an audit. ${canPlan()?'Pick a planned date in a cell to schedule it.':''} Quarters before Q${PLAN_START.q} ${PLAN_START.y} are not tracked.</p>${bar}
+  <div class="grid kpis" style="margin-bottom:14px">${qc}</div>
+  <div class="card"><div class="scroll"><table class="t"><thead><tr><th>${t('site')}</th><th>${t('dept')}</th><th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th></tr></thead><tbody>${rows||`<tr><td colspan="6" class="empty">${t('none')}</td></tr>`}</tbody></table></div></div><div class="err">${esc(S.err)}</div>`);
+}
 function adminView(){
   const ps=D().profiles; 
   const sel=(opts,val,attrs)=>`<select ${attrs}><option value="">—</option>${opts.map(o=>`<option value="${o.id}" ${val===o.id?'selected':''}>${esc(o.name)}</option>`).join('')}</select>`;
@@ -395,6 +494,7 @@ function view(){
   switch(a){
     case 'audits': return auditsView();
     case 'audit': return auditFormView(b||'new');
+    case 'plan': return planView();
     case 'cars': return carsView();
     case 'car': return carView(b);
     case 'nc': return ncView();
@@ -406,7 +506,7 @@ function view(){
 function render(){
   document.documentElement.lang=S.lang; document.documentElement.dir=S.lang==='ar'?'rtl':'ltr';
   const keepScroll=window.scrollY; const ae=document.activeElement; const info=ae&&ae.dataset&&(ae.dataset.r!=null||ae.dataset.d)?{r:ae.dataset.r,k:ae.dataset.k,d:ae.dataset.d}:null;
-  $app.innerHTML=view(); window.scrollTo(0,keepScroll);
+  $app.innerHTML=view(); window.scrollTo(0,keepScroll); animateCounts();
   if(info){ const q=info.r!=null?`[data-r="${info.r}"][data-k="${info.k}"]`:`[data-d="${info.d}"]`; const el=document.querySelector(q); if(el&&el.focus){el.focus(); try{el.setSelectionRange(el.value.length,el.value.length);}catch(e){}} }
 }
 async function reload(){ S.data=await DB.loadAll(); }
@@ -451,6 +551,9 @@ document.addEventListener('input',e=>{
 document.addEventListener('change',e=>{
   const el=e.target;
   if(el.id==='demoRole'){ DB.switchRole(el.value); return; }
+  if(el.dataset.pq){ S.planQ=+el.value; render(); return; }
+  if(el.dataset.py){ S.planYear=+el.value; render(); return; }
+  if(el.dataset.plan){ const [sid,did,y,q]=el.dataset.plan.split('|').map(Number); const v=el.value; (async()=>{ try{ const rec=(D().audit_plan||[]).find(r=>r.site_id===sid&&r.department_id===did&&r.year===y&&r.quarter===q); if(v&&(v<qStart(y,q)||v>qEnd(y,q))){ S.err='The date must be inside Q'+q+' '+y; render(); return; } if(rec&&!v) await DB.remove('audit_plan',rec.id); else if(rec) await DB.update('audit_plan',rec.id,{planned_date:v}); else if(v) await DB.insert('audit_plan',{site_id:sid,department_id:did,year:y,quarter:q,planned_date:v}); await reload(); S.err=''; toast(t('saved')); render(); }catch(er){S.err=er.message;render();} })(); return; }
   if(el.dataset.logo&&el.files&&el.files[0]){ const id=el.dataset.logo, fr=new FileReader(); fr.onload=()=>{ const im=new Image(); im.onload=()=>{ const h=Math.min(120,im.height), w=Math.round(im.width*h/im.height), c=document.createElement('canvas'); c.width=w; c.height=h; const x=c.getContext('2d'); x.fillStyle='#fff'; x.fillRect(0,0,w,h); x.drawImage(im,0,0,w,h); const u=c.toDataURL('image/png'); (S.logoDraft=S.logoDraft||{})[id]=u; const pv=document.getElementById('lp'+id); if(pv) pv.src=u; }; im.src=fr.result; }; fr.readAsDataURL(el.files[0]); return; }
   if(el.dataset.f){ S.filters[el.dataset.f]=el.value; render(); return; }
   if(el.dataset.d&&S.draft&&el.tagName==='SELECT'){ const k=el.dataset.d; S.draft[k]=el.value===''?'':+el.value; if(k==='site_id'&&S.draft.department_id&&!depAt(byId('departments',S.draft.department_id),S.draft.site_id)) S.draft.department_id=''; if(k==='department_id'){ const dep=byId('departments',S.draft.department_id); S.draft.rows.forEach(r=>{ if(!r.id&&dep&&!r.responsible) r.responsible=dep.name; }); } render(); return; }
