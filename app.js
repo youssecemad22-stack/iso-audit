@@ -50,7 +50,7 @@ en:{app:'Audit System',dash:'Dashboard',audits:'Audits',cars:'CARs',nc:'NC list'
 };
 
 /* ---------------- state ---------------- */
-const S = { lang: localStorage.getItem('audit_lang')||'ar', user:null, profile:null, data:null, route:'', err:'', busy:false, filters:{site:'',dep:'',from:'',to:''}, draft:null, confirmDel:false, authMode:'in' };
+const S = { lang: 'en', user:null, profile:null, data:null, route:'', err:'', busy:false, filters:{site:'',dep:'',from:'',to:''}, draft:null, confirmDel:false, authMode:'in' };
 const t = k => (T[S.lang]&&T[S.lang][k]) || T.en[k] || k;
 const TABLES = ['sites','departments','audits','findings','cars'];
 
@@ -185,7 +185,7 @@ function layout(inner){
   const demo = CFG.mode==='demo' ? `<div class="demo-bar">${t('demo')} <select id="demoRole">${DB.demoProfiles().map(p=>`<option value="${p.id}" ${p.id===S.user.id?'selected':''}>${esc(p.full_name)} (${esc(p.role)})</option>`).join('')}</select></div>`:'';
   return demo+`<div class="top"><div class="top-in"><div class="brand"><i>✓</i>${t('app')}</div>
   <nav class="nav">${links.map(([h,k])=>`<a href="${h}" class="${cur===h.slice(2)||(cur==='audit'&&k==='audits')||(cur==='car'&&k==='cars')||(cur==='doc'&&k==='nc'&&false)?'on':''}">${t(k)}</a>`).join('')}</nav>
-  <div class="who"><span>${esc(S.profile.full_name||S.user.email)}</span><span class="role">${t(role())}</span><button class="lang" data-a="lang">${S.lang==='ar'?'EN':'عربي'}</button><button class="lang" data-a="logout">${t('logout')}</button></div></div></div><main>${inner}</main>`;
+  <div class="who"><span>${esc(S.profile.full_name||S.user.email)}</span><span class="role">${t(role())}</span><button class="lang" data-a="logout">${t('logout')}</button></div></div></div><main>${inner}</main>`;
 }
 function loginView(){
   const up=S.authMode==='up';
@@ -195,8 +195,7 @@ function loginView(){
   <label class="f">${t('password')}<input name="pw" type="password" required minlength="6" autocomplete="${up?'new-password':'current-password'}" dir="ltr"></label>
   <div class="err">${esc(S.err)}</div>
   <button class="btn" ${S.busy?'disabled':''}>${up?t('signup'):t('login')}</button>
-  <button type="button" class="btn sec" data-a="authmode">${up?t('haveAcc'):t('noAcc')}</button></form>
-  <p style="text-align:center"><button class="lang" style="color:var(--pri);border-color:var(--line)" data-a="lang">${S.lang==='ar'?'EN':'عربي'}</button></p></div></div>`;
+  <button type="button" class="btn sec" data-a="authmode">${up?t('haveAcc'):t('noAcc')}</button></form></div></div>`;
 }
 function pendingView(){
   return layout(`<div class="card"><h2>${t('pendingT')}</h2><p>${t('pendingP')}</p><p class="s" dir="ltr">${esc(S.user.email)}</p></div>`);
