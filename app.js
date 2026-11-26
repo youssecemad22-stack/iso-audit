@@ -244,8 +244,7 @@ function dashView(){
   <div class="grid two"><div class="card"><h2>Quarterly trend</h2>${trendChart(ser,hasConf)}</div><div class="card"><h2>Open CAR ageing</h2>${ageingHtml(open)}</div></div>
   <div class="card"><h2>Nonconformity heatmap · site × department</h2>${heatmapHtml(findings)}</div>
   ${planOverHtml}${overHtml}${siteHtml}
-  <div class="grid two"><div class="card bars"><h2>${hasConf?t('confByDep'):t('ncByDep')}</h2>${depHtml}</div><div class="card"><h2>${t('perMonth')}</h2>${monHtml}</div></div>
-  <div class="card"><h2>${t('topIso')}</h2>${topHtml}</div>`);
+  <div class="grid two"><div class="card bars"><h2>${hasConf?t('confByDep'):t('ncByDep')}</h2>${depHtml}</div><div class="card"><h2>${t('perMonth')}</h2>${monHtml}</div></div>`);
 }
 function carTable(cars){
   return `<div class="scroll"><table class="t"><thead><tr><th>${t('carNo')}</th><th>${t('site')}</th><th>${t('dept')}</th><th>${t('classification')}</th><th>${t('raised')}</th><th>${t('due')}</th><th>${t('status')}</th></tr></thead><tbody>${cars.map(c=>`<tr class="click" data-go="#/car/${c.id}"><td dir="ltr"><b>${esc(c.car_no)}</b></td><td>${esc(siteLabel(byId('sites',c.site_id)))}</td><td>${esc(depName(c.department_id))}</td><td><span class="badge b-${c.classification}">${t(c.classification)}</span></td><td>${fmt(c.date_raised)}</td><td>${fmt(c.action_date)}</td><td>${stBadge(c)}</td></tr>`).join('')}</tbody></table></div>`;
