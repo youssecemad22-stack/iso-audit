@@ -343,13 +343,16 @@ const qStart=(y,q)=>y+'-'+String((q-1)*3+1).padStart(2,'0')+'-01';
 const qEnd=(y,q)=>{const m=q*3; return y+'-'+String(m).padStart(2,'0')+'-'+new Date(Date.UTC(y,m,0)).getUTCDate();};
 const canPlan=()=>['owner','auditor','site_manager'].includes(role());
 function siteStart(sid){ const s=D().sites.find(x=>x.id===sid); const m=s&&/^(\d{4})-Q([1-4])$/.exec(s.plan_start||''); return m?{y:+m[1],q:+m[2]}:PLAN_START; }
+const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const monthName=iso=>MONTHS[+iso.slice(5,7)-1];
+const monthEnd=iso=>{const y=+iso.slice(0,4),m=+iso.slice(5,7); return iso.slice(0,8).replace(/-\d\d$/,'')+'-'+String(new Date(Date.UTC(y,m,0)).getUTCDate()).padStart(2,'0');};
 function planCellState(sid,did,y,q){
   const ps=siteStart(sid); if(y<ps.y||(y===ps.y&&q<ps.q)) return {st:'na'};
   const a=qStart(y,q), b=qEnd(y,q);
   const au=D().audits.filter(x=>x.site_id===sid&&x.department_id===did&&x.audit_date>=a&&x.audit_date<=b).sort((m,n)=>m.audit_date.localeCompare(n.audit_date))[0];
   const rec=(D().audit_plan||[]).find(r=>r.site_id===sid&&r.department_id===did&&r.year===y&&r.quarter===q);
   if(au) return {st:'done',au,rec};
-  const od=b<today()||(rec&&rec.planned_date&&rec.planned_date<today());
+  const pm=rec&&rec.planned_date?monthEnd(rec.planned_date):null; const od=b<today()||(pm&&pm<today());
   return {st:od?'overdue':'planned',rec};
 }
 function planPairs(){
@@ -360,14 +363,14 @@ function planStats(y,q,pairs){ const r={total:0,done:0,overdue:0,planned:0}; pai
 function planLegend(){ return `<div class="plegend"><span><i class="pb-done"></i>Done</span><span><i class="pb-planned"></i>Planned</span><span><i class="pb-overdue"></i>Overdue</span><span><i class="pb-na"></i>Not tracked</span></div>`; }
 function pblock(c,inner){ // inner: extra html for planned/overdue
   if(c.st==='na') return '<td class="pcell"><div class="pb pb-na"><b>Not tracked</b></div></td>';
-  if(c.st==='done') return `<td class="pcell"><a class="pb pb-done" href="#/audit/${c.au.id}"><b>✓ Done</b><small>${fmt(c.au.audit_date)}</small></a></td>`;
-  return `<td class="pcell"><div class="pb pb-${c.st}"><b>${c.st==='overdue'?'⚠ Overdue':'Planned'}</b>${inner||''}</div></td>`;
+  if(c.st==='done') return `<td class="pcell"><a class="pb pb-done" href="#/audit/${c.au.id}"><b>✓ Done</b>${c.rec&&c.rec.planned_date?`<small>Planned: ${monthName(c.rec.planned_date)}</small>`:''}<small class="dn">Done on ${fmt(c.au.audit_date)}</small></a></td>`;
+  return `<td class="pcell"><div class="pb pb-${c.st}"><b>${c.st==='overdue'?'⚠ Overdue':'Planned'}</b>${inner||''}<small class="dn">Not done yet</small></div></td>`;
 }
 function planMatrix(){
   const f=S.filters, cq=qOf(today()), y=S.planYear||cq.y, q=S.planQ||cq.q;
   const sites=scopedSites().filter(x=>!f.site||x.id==f.site), deps=scopedDeps().filter(d=>!f.dep||d.id==f.dep);
   const st=planStats(y,q,planPairs()); const p=pct(st.done,st.total);
-  const cell=(s,d)=>{ if(!depAt(d,s.id)) return '<td class="pcell"><div class="pb pb-x">n/a</div></td>'; const c=planCellState(s.id,d.id,y,q); const dv=c.rec&&c.rec.planned_date; return pblock(c,dv?`<small>${fmt(dv)}</small>`:'<small>no date</small>'); };
+  const cell=(s,d)=>{ if(!depAt(d,s.id)) return '<td class="pcell"><div class="pb pb-x">n/a</div></td>'; const c=planCellState(s.id,d.id,y,q); const dv=c.rec&&c.rec.planned_date; return pblock(c,`<small>${dv?monthName(dv):'No month set'}</small>`); };
   return `<div class="card"><div class="spread"><h2 style="margin:0">Audit plan · Q${q} ${y}</h2><div class="row"><label class="f" style="min-width:90px">Quarter<select data-pq="1">${[1,2,3,4].map(v=>`<option value="${v}" ${v===q?'selected':''}>Q${v}</option>`).join('')}</select></label><a class="btn sm sec" href="#/plan">Open plan</a></div></div>
   <p class="s" style="color:var(--mut)">${st.total?`${st.done} of ${st.total} done (${p}%) · ${st.planned} planned · ${st.overdue} overdue`:'This quarter is not tracked.'}</p>
   ${planLegend()}<div class="scroll"><table class="t pm"><thead><tr><th>${t('site')}</th>${deps.map(d=>`<th style="text-align:center">${esc(d.name)}</th>`).join('')}</tr></thead><tbody>${sites.map(s=>`<tr><td><b>${esc(s.name)}</b></td>${deps.map(d=>cell(s,d)).join('')}</tr>`).join('')}</tbody></table></div></div>`;
@@ -421,10 +424,11 @@ function planView(){
   const qc=[1,2,3,4].map(q=>{const st=planStats(y,q,pairs); const p=pct(st.done,st.total); return `<div class="kpi ${st.total?(st.overdue?'bad':p===100?'good':''):''}"><b>${st.total?st.done+'/'+st.total:'—'}</b><span>Q${q} ${y} ${st.total?'done ('+p+'%)':'not tracked'}${st.overdue?' · '+st.overdue+' overdue':''}</span></div>`;}).join('');
   const rows=pairs.map(([s,d])=>{ const cells=[1,2,3,4].map(q=>{ const c=planCellState(s.id,d.id,y,q);
     const dv=c.rec&&c.rec.planned_date||'';
-    const inp=canPlan()?`<input type="date" data-plan="${s.id}|${d.id}|${y}|${q}" value="${dv}" min="${qStart(y,q)}" max="${qEnd(y,q)}">`:`<small>${dv?fmt(dv):'No date set'}</small>`;
+    const mo=[0,1,2].map(i=>{const m=(q-1)*3+i+1; return y+'-'+String(m).padStart(2,'0')+'-01';});
+    const inp=canPlan()?`<select data-plan="${s.id}|${d.id}|${y}|${q}"><option value="">Month…</option>${mo.map(v=>`<option value="${v}" ${dv===v?'selected':''}>${monthName(v)}</option>`).join('')}</select>`:`<small>${dv?monthName(dv):'No month set'}</small>`;
     return pblock(c,inp); }).join('');
     return `<tr><td><b>${esc(s.name)}</b></td><td>${esc(d.name)}</td>${cells}</tr>`; }).join('');
-  return layout(`<h1>${t('plan')}</h1><p class="s" style="color:var(--mut);margin-top:0">Every department is audited once per quarter at each site it applies to. A cell turns Done when an audit for that site and department is entered with a date inside the quarter. It turns Overdue when the planned date passes, or the quarter ends, without an audit. ${canPlan()?'Pick a planned date in a cell to schedule it.':''} Each site has its own tracking start quarter (set in Admin); earlier quarters show a dash.</p>${bar}
+  return layout(`<h1>${t('plan')}</h1><p class="s" style="color:var(--mut);margin-top:0">Every department is audited once per quarter at each site it applies to. A cell turns Done when an audit for that site and department is entered with a date inside the quarter. It turns Overdue when the planned month ends, or the quarter ends, without an audit. ${canPlan()?'Pick the planned month in a cell; once the audit is entered, the day it was done shows under it.':''} Each site has its own tracking start quarter (set in Admin); earlier quarters show a dash.</p>${bar}
   <div class="grid kpis" style="margin-bottom:14px">${qc}</div>
   <div class="card">${planLegend()}<div class="scroll"><table class="t pm"><thead><tr><th>${t('site')}</th><th>${t('dept')}</th><th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th></tr></thead><tbody>${rows||`<tr><td colspan="6" class="empty">${t('none')}</td></tr>`}</tbody></table></div></div><div class="err">${esc(S.err)}</div>`);
 }
