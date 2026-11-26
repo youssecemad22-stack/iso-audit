@@ -161,3 +161,4 @@ a.pb:hover{transform:translateY(-2px);box-shadow:0 6px 16px rgba(0,0,0,.2);color
 .plegend{display:flex;gap:18px;flex-wrap:wrap;margin:6px 0 12px;font-size:13px;font-weight:600;color:var(--ink)}
 .plegend i{display:inline-block;width:22px;height:14px;border-radius:5px;margin-inline-end:7px;vertical-align:-2px}
 @media print{.pb{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+.pb small.dn{margin-top:2px;padding-top:3px;border-top:1px solid rgba(255,255,255,.35);width:80%;font-weight:600}.pb select{background:rgba(255,255,255,.95);color:#14262d;border:0;border-radius:8px;padding:3px 6px;font-size:12.5px;max-width:130px}
