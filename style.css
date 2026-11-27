@@ -99,10 +99,13 @@ table.t tr.click{cursor:pointer}table.t tr.click:hover{background:#f7fafb}
   body{background:#fff}
   .top,.doc-tools,.demo-bar,#toast,.noprint{display:none!important}
   main{padding:0;max-width:none}
-  .paper-wrap{overflow:visible}
+  .paper-wrap{overflow:visible;padding-bottom:0}
   .paper{box-shadow:none;margin:0;page-break-after:always;break-after:page}
   .paper.port{width:210mm;min-height:296mm;padding:10mm 12mm;page:portrait}
   .paper.land{width:297mm;min-height:209mm;padding:9mm 12mm;page:landscape}
+  #docMeasure{display:none!important}
+  .paper{break-inside:avoid;page-break-inside:avoid}
+  .paper-wrap>.paper:last-child{break-after:auto;page-break-after:auto}
   @page portrait{size:A4 portrait;margin:0}
   @page landscape{size:A4 landscape;margin:0}
 }
