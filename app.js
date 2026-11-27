@@ -465,21 +465,107 @@ function docNc(sid){
     return `<div class="paper port">${hdrDoc('Non-Conformity List - ('+siteShort(s)+')',s)}<table><thead><tr><th rowspan="2" style="width:20%">CAR Number</th><th rowspan="2" style="width:17%">Date</th><th rowspan="2">Department</th><th colspan="2" style="width:24%">Result</th></tr><tr><th>Closed</th><th>Open</th></tr></thead><tbody>${rows.join('')}</tbody></table><div class="ftr pf"><span>Form code: ${FORM.nc[0]}</span><span>Version no:01</span><span style="text-align:right">Effective date: 18/10/2026<br>Page ${pi+1} of ${pages.length}</span></div></div>`;}).join('');
   return layout(docToolbar('#/nc')+`<div class="paper-wrap">${html}</div>`);
 }
+/* ---- A4 pagination: long forms are split across sheets with real page numbers ---- */
+const PXMM = v => v*96/25.4;
+const DOCGEO = {land:{w:297,h:209,pt:9,px:12},port:{w:210,h:296,pt:10,px:12}};
+function docMeasure(){
+  let d=document.getElementById('docMeasure');
+  if(!d){ d=document.createElement('div'); d.id='docMeasure'; d.style.cssText='position:absolute;left:-30000px;top:0;width:0;height:0;overflow:hidden;visibility:hidden'; document.body.appendChild(d); }
+  return d;
+}
+function docPaper(cls){
+  const g=DOCGEO[cls]||DOCGEO.land, p=document.createElement('div'); p.className='paper '+cls;
+  p.style.cssText='min-height:0;margin:0;width:'+PXMM(g.w)+'px;padding:'+PXMM(g.pt)+'px '+PXMM(g.px)+'px;';
+  return p;
+}
+/* height of one composed sheet, measured in the exact print geometry */
+function docSheet(o,blocks,withTail){
+  const box=docMeasure(), p=docPaper(o.cls||'land');
+  p.innerHTML=o.hdr+o.meta+o.wrap(blocks)+(withTail&&o.tail?o.tail:'');
+  box.appendChild(p);
+  const kids=[...p.children], last=kids[kids.length-1], top=p.getBoundingClientRect().top;
+  const h=last?last.getBoundingClientRect().bottom-top:0;
+  box.removeChild(p);
+  return h;
+}
+function docLimit(o){
+  const cls=o.cls||'land', g=DOCGEO[cls]||DOCGEO.land, box=docMeasure();
+  const fp=docPaper(cls); fp.innerHTML=o.foot(1,1); box.appendChild(fp);
+  const fEl=fp.querySelector('.ftr'); const footH=fEl?fEl.getBoundingClientRect().height:33; box.removeChild(fp);
+  return PXMM(g.h)-22-footH-10;
+}
+/* a single row taller than a sheet is split into continuation rows so page numbers stay true */
+function expandRows(o,data,rowHtml){
+  const limit=docLimit(o), out=[];
+  data.forEach(d=>{
+    if(d.sec!=null||!d.field){ out.push(rowHtml(d)); return; }
+    if(docSheet(o,[rowHtml(d)],false)<=limit){ out.push(rowHtml(d)); return; }
+    let rest=String(d[d.field]||'').split(/\s+/), first=true, guard=0;
+    while(rest.length&&guard++<80){
+      let lo=1, hi=rest.length, best=1;
+      while(lo<=hi){ const mid=(lo+hi)>>1; const trial=Object.assign({},d,{[d.field]:rest.slice(0,mid).join(' ')},first?{}:{cont:true});
+        if(docSheet(o,[rowHtml(trial)],false)<=limit){ best=mid; lo=mid+1; } else hi=mid-1; }
+      out.push(rowHtml(Object.assign({},d,{[d.field]:rest.slice(0,best).join(' ')},first?{}:{cont:true})));
+      rest=rest.slice(best); first=false;
+    }
+  });
+  return out;
+}
+function paginateBlocks(o){
+  const cls=o.cls||'land';
+  const limit=docLimit(o);
+  const fits=(b,tail)=>docSheet(o,b,tail)<=limit;
+  const pages=[]; let cur=[];
+  o.blocks.forEach(b=>{
+    if(cur.length&&!fits(cur.concat([b]),false)){
+      const carry=[];
+      while(cur.length>1&&o.keepNext&&o.keepNext(cur[cur.length-1])) carry.unshift(cur.pop());
+      pages.push(cur); cur=carry;
+      if(cur.length&&!fits(cur.concat([b]),false)){ pages.push(cur); cur=[]; }
+    }
+    cur.push(b);
+  });
+  if(cur.length) pages.push(cur);
+  if(!pages.length) pages.push([]);
+  let last=pages[pages.length-1];
+  while(last.length>1&&!fits(last,true)){ const b=last.pop(); pages.push([b]); last=pages[pages.length-1]; }
+  const tot=pages.length;
+  return pages.map((pg,pi)=>`<div class="paper ${cls}">${o.hdr}${o.metaPage(pi>0)}${o.wrap(pg)}${pi===tot-1?(o.tail||''):''}${o.foot(pi+1,tot)}</div>`).join('');
+}
 function docAudit(id){
   const a=byId('audits',+id); if(!a) return layout(`<div class="empty">${t('none')}</div>`);
-  const s=byId('sites',a.site_id), dn=depName(a.department_id); const fs=D().findings.filter(f=>f.audit_id===a.id).sort((x,y)=>(x.sn||0)-(y.sn||0));
-  const rowsHtml=fs.map((f,i)=>{const nc=f.result==='minor'||f.result==='major'; const res=nc?`Nonconformity - ${f.result==='major'?'Major':'Minor'}${f.car_no?' ('+f.car_no+')':''}`:(f.result==='ofi'?'Observation / OFI':'Conformity');
-    return `<tr><td style="text-align:center" class="v">${i+1}</td><td class="v">${esc(f.audit_point)}${f.iso_refs?' (ISO ref. '+esc(f.iso_refs)+')':''}</td><td class="v">${esc(res)}</td><td class="v">${esc(f.corrective_action)}</td><td class="v">${esc(f.responsible||dn)}</td><td class="v">${fmt(f.due_date)}</td></tr>`;});
-  const tplDoc=fs.some(f=>f.section!=null||f.comment!=null||f.result==='na'); let tplTable='';
-  if(tplDoc){ let lastSec=null,n=0; const trs=[]; fs.forEach(f=>{ if(f.section&&f.section!==lastSec) trs.push(`<tr><td colspan="4" class="v" style="font-weight:700;background:#eef2f3">${esc(f.section)}</td></tr>`); lastSec=f.section; n++; const st=f.result==='conforming'?'Compliant':f.result==='na'?'N/A':`Non-Compliant - ${f.result==='major'?'Major':'Minor'}${f.car_no?' ('+f.car_no+')':''}`; trs.push(`<tr><td style="text-align:center" class="v">${n}</td><td class="v">${esc(f.audit_point)}</td><td class="v">${esc(st)}</td><td class="v">${esc(f.comment)}</td></tr>`); });
-    tplTable=`<table><thead><tr><th style="width:5%;font-size:12px">SN</th><th style="width:36%">Audit Point</th><th style="width:16%;font-size:12px">Status</th><th style="width:43%">Comment</th></tr></thead><tbody>${trs.join('')}</tbody></table>`; }
-  const total=Math.max(12,rowsHtml.length); while(rowsHtml.length<total) rowsHtml.push('<tr style="height:26px"><td></td><td></td><td></td><td></td><td></td><td></td></tr>');
-  return layout(docToolbar('#/audits')+`<div class="paper-wrap"><div class="paper land">${hdrDoc('Internal Audit Report - ('+siteShort(s)+')',s)}
-  <div class="v" style="font-weight:700;margin-bottom:6px"><span style="margin-inline-end:24px">Audited Department: ${esc(dn)}</span><span style="margin-inline-end:24px">Site: ${esc(s.full_name||s.name)}</span><span>Audit date: ${fmt(a.audit_date)}</span></div>
-  ${tplDoc?tplTable:`<table><thead><tr><th style="width:4%;font-size:12px">SN</th><th style="width:30%">Audit Point</th><th style="width:15%;font-size:12px">Conformity / Nonconformity</th><th style="width:24%">Corrective Action</th><th style="width:14%;font-size:12px">Responsible Department</th><th style="width:10%;font-size:12px">Due Date</th></tr></thead><tbody>${rowsHtml.join('')}</tbody></table>`}
-  <table style="margin-top:0"><tr><td style="width:50%;height:100px"><div class="ln">Manager of the Audited Department</div><div class="ln" style="margin-top:14px">Name: ............................................................</div><div class="ln" style="margin-top:10px">Signature: ........................................................</div><div class="ln" style="margin-top:10px">Date: .... / .... / ........</div></td>
-  <td><div class="ln">Auditor</div><div class="ln" style="margin-top:14px">Name: <span class="v">${esc(a.auditor_name)}</span> ..............................................</div><div class="ln" style="margin-top:10px">Signature: ........................................................</div><div class="ln" style="margin-top:10px">Date: .... / .... / ..........</div></td></tr></table>
-  <div class="ftr" style="margin-top:14px"><span>Form code: ${FORM.audit[0]}</span><span>Version no:01</span><span style="text-align:right">Effective date: 18/10/2026<br>Page 1 of 1</span></div></div></div>`);
+  const s=byId('sites',a.site_id), dn=depName(a.department_id);
+  const fs=D().findings.filter(f=>f.audit_id===a.id).sort((x,y)=>(x.sn||0)-(y.sn||0));
+  const hdr=hdrDoc('Internal Audit Report - ('+siteShort(s)+')',s);
+  const meta=cont=>`<div class="v meta" style="font-weight:700;margin-bottom:6px"><span style="margin-inline-end:24px">Audited Department: ${esc(dn)}</span><span style="margin-inline-end:24px">Site: ${esc(s.full_name||s.name)}</span><span>Audit date: ${fmt(a.audit_date)}</span>${cont?'<span style="font-weight:400;margin-inline-start:14px">(continued)</span>':''}</div>`;
+  const tplDoc=fs.some(f=>f.section!=null||f.comment!=null||f.result==='na');
+  let head='', data=[];
+  if(tplDoc){
+    head='<thead><tr><th style="width:5%;font-size:12px">SN</th><th style="width:36%">Audit Point</th><th style="width:16%;font-size:12px">Status</th><th style="width:43%">Comment</th></tr></thead>';
+    let lastSec=null,n=0;
+    fs.forEach(f=>{
+      if(f.section&&f.section!==lastSec) data.push({sec:f.section});
+      lastSec=f.section; n++;
+      data.push({sn:n, point:f.audit_point, status:f.result==='conforming'?'Compliant':f.result==='na'?'N/A':`Non-Compliant - ${f.result==='major'?'Major':'Minor'}${f.car_no?' ('+f.car_no+')':''}`, comment:f.comment||'', field:'comment'});
+    });
+  } else {
+    head='<thead><tr><th style="width:4%;font-size:12px">SN</th><th style="width:30%">Audit Point</th><th style="width:15%;font-size:12px">Conformity / Nonconformity</th><th style="width:24%">Corrective Action</th><th style="width:14%;font-size:12px">Responsible Department</th><th style="width:10%;font-size:12px">Due Date</th></tr></thead>';
+    fs.forEach((f,i)=>{
+      const nc=f.result==='minor'||f.result==='major';
+      data.push({sn:i+1, point:f.audit_point, iso:f.iso_refs, status:nc?`Nonconformity - ${f.result==='major'?'Major':'Minor'}${f.car_no?' ('+f.car_no+')':''}`:(f.result==='ofi'?'Observation / OFI':'Conformity'), action:f.corrective_action||'', resp:f.responsible||dn, due:f.due_date, field:'action'});
+    });
+  }
+  const rowHtml=d=>{
+    if(d.sec!=null) return `<tr class="secrow"><td colspan="4" class="v" style="font-weight:700;background:#eef2f3">${esc(d.sec)}</td></tr>`;
+    if(tplDoc) return `<tr><td style="text-align:center" class="v">${d.sn}</td><td class="v">${d.cont?'<i>(continued)</i>':esc(d.point)}</td><td class="v">${d.cont?'':esc(d.status)}</td><td class="v">${esc(d.comment)}</td></tr>`;
+    return `<tr><td style="text-align:center" class="v">${d.sn}</td><td class="v">${d.cont?'<i>(continued)</i>':esc(d.point)+(d.iso?' (ISO ref. '+esc(d.iso)+')':'')}</td><td class="v">${d.cont?'':esc(d.status)}</td><td class="v">${esc(d.action)}</td><td class="v">${d.cont?'':esc(d.resp)}</td><td class="v">${d.cont?'':fmt(d.due)}</td></tr>`;
+  };
+  const sig=`<div class="sigblk" style="margin-top:8px"><table><tr><td style="width:50%;height:100px"><div class="ln">Manager of the Audited Department</div><div class="ln" style="margin-top:14px">Name: ............................................................</div><div class="ln" style="margin-top:10px">Signature: ........................................................</div><div class="ln" style="margin-top:10px">Date: .... / .... / ........</div></td>
+  <td><div class="ln">Auditor</div><div class="ln" style="margin-top:14px">Name: <span class="v">${esc(a.auditor_name)}</span> ..............................................</div><div class="ln" style="margin-top:10px">Signature: ........................................................</div><div class="ln" style="margin-top:10px">Date: .... / .... / ..........</div></td></tr></table></div>`;
+  const foot=(n,tot)=>`<div class="ftr pf"><span>Form code: ${FORM.audit[0]}</span><span>Version no:01</span><span style="text-align:right">Effective date: 18/10/2026<br>Page ${n} of ${tot}</span></div>`;
+  const o={cls:'land',hdr,meta:meta(true),metaPage:meta,wrap:b=>`<table>${head}<tbody>${b.join('')}</tbody></table>`,tail:sig,foot};
+  o.blocks=expandRows(o,data,rowHtml); o.keepNext=b=>b.indexOf('class="secrow"')>-1;
+  return layout(docToolbar('#/audits')+`<div class="paper-wrap">${paginateBlocks(o)}</div>`);
 }
 function docCar(id){
   const c=byId('cars',+id); if(!c) return layout(`<div class="empty">${t('none')}</div>`);
@@ -487,20 +573,27 @@ function docCar(id){
   const decs=['Auditor has reviewed and accepted the correction and plan for corrective action - released for review and closure at the next audit. No objective evidence required at this time','Auditor has reviewed and accepted the correction and plan for corrective action and objective evidence of implementation – closed. Objective evidence required','Auditor has reviewed, accepted and verified the correction and corrective actions proposed and objective evidence of implementation – closed or downgraded to minor. Objective evidence required','Auditor has reviewed, accepted and verified the correction and corrective actions proposed, but the effectiveness requires an on-site audit before closure. Special visit required for on-site verification'];
   const v=x=>`<span class="v">${esc(x==null?'':x)}</span>`;
   const blk=(h,sub,val,hh)=>`<tr><td style="background:#f4f4f4;border-bottom:0"><span class="lbl">${h}</span> ${sub}</td></tr><tr><td style="height:${hh}px" class="v">${esc(val)}</td></tr>`;
-  return layout(docToolbar('#/car/'+c.id)+`<div class="paper-wrap"><div class="paper port">${hdrDoc('NON-CONFORMITY & CORRECTIVE ACTION REPORT ('+siteShort(s)+')',s)}
-  <div style="font-family:Arial;font-weight:700;font-size:15px;margin:14px 0 8px">CORRECTIVE ACTION REQUEST</div>
-  <table><tr><td class="lbl" style="width:14%;text-align:center">Site Name</td><td>${v(s.full_name||s.name)}</td><td class="lbl" style="width:16%">DATE RAISED:</td><td style="width:20%;text-align:center">${v(fmt(c.date_raised))}</td></tr>
-  <tr><td class="lbl" style="text-align:center">Classification: Major/Minor</td><td>${v(c.classification==='major'?'Major':'Minor')}</td><td class="lbl">CAR No:</td><td style="text-align:center">${v(c.car_no)}</td></tr></table>
-  <table style="margin-top:-1px"><tr><td class="sec">SECTION 1 – AUDITOR FINDINGS</td></tr><tr><td style="min-height:48px;height:54px" class="v">${esc(c.auditor_findings)}</td></tr>
-  <tr><td class="sec">SECTION 2 – RESPONSE AND PLANNED ACTIONS</td></tr>
-  ${blk('CORRECTION: -','(What action you have taken to correct the problem)',c.correction,50)}${blk('Analysis of the Root Cause: -','(What do you think caused the problem in the first place, and why?)',c.root_cause,44)}${blk('Description of the specific Corrective Actions taken, or planned to be taken: -','(What do you intend to do to address the Root Cause that you have identified above?)',c.corrective_action,50)}</table>
-  <table style="margin-top:-1px"><tr><td class="lbl" style="width:16%">Proposed By:</td><td style="width:26%">${v(c.proposed_by)}</td><td class="lbl" style="width:24%">Date by which Corrective Actions will be Taken:</td><td style="text-align:center">${v(fmt(c.action_date))}</td></tr></table>
-  <table style="margin-top:-1px"><tr><td class="sec" style="text-align:left" colspan="2">SECTION 3 – REVIEW BY AUDITOR</td></tr>${decs.map((x,i)=>`<tr><td style="font-size:11px">${x}</td><td style="width:34px;text-align:center">${box(i+1)}</td></tr>`).join('')}
-  <tr><td colspan="2" style="text-align:center;font-size:10.5px">JUSTIFICATION FOR THE ABOVE DECISION AND PROVIDE OBJECTIVE EVIDENCE WHERE REQUIRED.</td></tr></table>
-  <table style="margin-top:-1px"><tr><td class="lbl" style="width:22%">Response Reviewed By</td><td style="width:28%">${v(c.reviewed_by)}</td><td class="lbl" style="width:22%">Date of Acceptance:</td><td style="text-align:center">${v(fmt(c.accepted_date))}</td></tr></table>
-  <table style="margin-top:-1px"><tr><td class="sec" style="text-align:left;font-size:11.5px"><b>SECTION 4 – CAR – CLOSED.</b> Please provide the details of objective evidence of implementation of the proposed correction and corrective action.</td></tr><tr><td style="height:60px" class="v">${esc(c.objective_evidence)}</td></tr></table>
-  <table style="margin-top:-1px"><tr><td class="lbl" style="width:22%">Verifying Auditor:</td><td style="width:28%">${v(c.verifying_auditor)}</td><td class="lbl" style="width:22%">Close Out Date:</td><td style="text-align:center">${v(fmt(c.close_date))}</td></tr></table>
-  ${ftrDoc(FORM.car[0])}</div></div>`);
+  const T=(inner,first)=>`<table${first?'':' style="margin-top:-1px"'}>${inner}</table>`;
+  const hdr=hdrDoc('NON-CONFORMITY & CORRECTIVE ACTION REPORT ('+siteShort(s)+')',s);
+  const meta=cont=>`<div class="v meta" style="font-weight:700;margin-bottom:6px"><span style="margin-inline-end:24px">CAR No: ${esc(c.car_no)}</span><span style="margin-inline-end:24px">Site: ${esc(s.full_name||s.name)}</span><span>Department: ${esc(depName(c.department_id))}</span>${cont?'<span style="font-weight:400;margin-inline-start:14px">(continued)</span>':''}</div>`;
+  const blocks=[
+    `<div style="font-family:Arial;font-weight:700;font-size:15px;margin:14px 0 8px">CORRECTIVE ACTION REQUEST</div>`,
+    T(`<tr><td class="lbl" style="width:14%;text-align:center">Site Name</td><td>${v(s.full_name||s.name)}</td><td class="lbl" style="width:16%">DATE RAISED:</td><td style="width:20%;text-align:center">${v(fmt(c.date_raised))}</td></tr>
+  <tr><td class="lbl" style="text-align:center">Classification: Major/Minor</td><td>${v(c.classification==='major'?'Major':'Minor')}</td><td class="lbl">CAR No:</td><td style="text-align:center">${v(c.car_no)}</td></tr>`,false),
+    T(`<tr><td class="sec">SECTION 1 – AUDITOR FINDINGS</td></tr><tr><td style="min-height:48px;height:54px" class="v">${esc(c.auditor_findings)}</td></tr>`,false),
+    T(`<tr><td class="sec">SECTION 2 – RESPONSE AND PLANNED ACTIONS</td></tr>`,false),
+    T(blk('CORRECTION: -','(What action you have taken to correct the problem)',c.correction,50),false),
+    T(blk('Analysis of the Root Cause: -','(What do you think caused the problem in the first place, and why?)',c.root_cause,44),false),
+    T(blk('Description of the specific Corrective Actions taken, or planned to be taken: -','(What do you intend to do to address the Root Cause that you have identified above?)',c.corrective_action,50),false),
+    T(`<tr><td class="lbl" style="width:16%">Proposed By:</td><td style="width:26%">${v(c.proposed_by)}</td><td class="lbl" style="width:24%">Date by which Corrective Actions will be Taken:</td><td style="text-align:center">${v(fmt(c.action_date))}</td></tr>`,false),
+    T(`<tr><td class="sec" style="text-align:left" colspan="2">SECTION 3 – REVIEW BY AUDITOR</td></tr>${decs.map((x,i)=>`<tr><td style="font-size:11px">${x}</td><td style="width:34px;text-align:center">${box(i+1)}</td></tr>`).join('')}
+  <tr><td colspan="2" style="text-align:center;font-size:10.5px">JUSTIFICATION FOR THE ABOVE DECISION AND PROVIDE OBJECTIVE EVIDENCE WHERE REQUIRED.</td></tr>`,false),
+    T(`<tr><td class="lbl" style="width:22%">Response Reviewed By</td><td style="width:28%">${v(c.reviewed_by)}</td><td class="lbl" style="width:22%">Date of Acceptance:</td><td style="text-align:center">${v(fmt(c.accepted_date))}</td></tr>`,false),
+    T(`<tr><td class="sec" style="text-align:left;font-size:11.5px"><b>SECTION 4 – CAR – CLOSED.</b> Please provide the details of objective evidence of implementation of the proposed correction and corrective action.</td></tr><tr><td style="height:60px" class="v">${esc(c.objective_evidence)}</td></tr>`,false),
+    T(`<tr><td class="lbl" style="width:22%">Verifying Auditor:</td><td style="width:28%">${v(c.verifying_auditor)}</td><td class="lbl" style="width:22%">Close Out Date:</td><td style="text-align:center">${v(fmt(c.close_date))}</td></tr>`,false)
+  ];
+  const foot=(n,tot)=>`<div class="ftr pf"><span>Form code: ${FORM.car[0]}</span><span>Version no: 01</span><span style="text-align:right">Effective date: 18/10/2026<br>Page ${n} of ${tot}</span></div>`;
+  return layout(docToolbar('#/car/'+c.id)+`<div class="paper-wrap">${paginateBlocks({cls:'port',hdr,meta:meta(true),metaPage:cont=>cont?meta(true):'',wrap:b=>b.join(''),blocks,tail:'',foot})}</div>`);
 }
 
 /* ---------------- router / render ---------------- */
